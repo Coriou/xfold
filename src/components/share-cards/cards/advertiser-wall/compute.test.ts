@@ -63,22 +63,22 @@ describe("computeAdvertiserWall", () => {
 });
 
 describe("computeAdvertiserWallShareability", () => {
-  it("scales with advertiser count and clamps at 100", () => {
-    expect(
-      computeAdvertiserWallShareability({
-        username: "u",
-        uniqueAdvertisers: 30,
-        targetingTypeCount: 5,
-        names: [],
-      }),
-    ).toBe(10);
-    expect(
-      computeAdvertiserWallShareability({
-        username: "u",
-        uniqueAdvertisers: 1000,
-        targetingTypeCount: 5,
-        names: [],
-      }),
-    ).toBe(100);
+  it("scales magnitude with advertiser count and clamps at 100", () => {
+    const low = computeAdvertiserWallShareability({
+      username: "u",
+      uniqueAdvertisers: 30,
+      targetingTypeCount: 5,
+      names: [],
+      benchmarkLine: null,
+    });
+    expect(low.magnitude).toBe(10);
+    const high = computeAdvertiserWallShareability({
+      username: "u",
+      uniqueAdvertisers: 1000,
+      targetingTypeCount: 5,
+      names: [],
+      benchmarkLine: null,
+    });
+    expect(high.magnitude).toBe(100);
   });
 });

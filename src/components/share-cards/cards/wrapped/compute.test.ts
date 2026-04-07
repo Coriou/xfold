@@ -47,27 +47,31 @@ describe("computeWrapped", () => {
     expect(props?.topHashtag?.tag).toBe("javascript");
     expect(props?.topHashtag?.count).toBe(2);
     expect(props?.firstTweetText).toContain("first ever tweet");
+    expect(props?.persona).toBe("Broadcaster");
+    expect(props?.personalityLine).toBeTruthy();
   });
 });
 
 describe("computeWrappedShareability", () => {
-  it("returns 0 for a fresh account with no extras", () => {
-    expect(
-      computeWrappedShareability({
-        username: "u",
-        daysOnX: 0,
-        tweetCount: 1,
-        likeCount: 0,
-        topHashtag: null,
-        topHourLabel: null,
-        topContactScreenName: null,
-        firstTweetText: null,
-        firstTweetDate: null,
-      }),
-    ).toBe(0);
+  it("returns low magnitude for a fresh account with no extras", () => {
+    const result = computeWrappedShareability({
+      username: "u",
+      daysOnX: 0,
+      tweetCount: 1,
+      likeCount: 0,
+      topHashtag: null,
+      topHourLabel: null,
+      topContactScreenName: null,
+      firstTweetText: null,
+      firstTweetDate: null,
+      persona: "Broadcaster",
+      personalityLine:
+        "You wrote more originals than replies — a true broadcaster.",
+    });
+    expect(result.magnitude).toBe(0);
   });
 
-  it("rewards account age", () => {
+  it("rewards account age in magnitude", () => {
     const young = computeWrappedShareability({
       username: "u",
       daysOnX: 365,
@@ -78,6 +82,8 @@ describe("computeWrappedShareability", () => {
       topContactScreenName: null,
       firstTweetText: null,
       firstTweetDate: null,
+      persona: "Broadcaster",
+      personalityLine: "test",
     });
     const old = computeWrappedShareability({
       username: "u",
@@ -89,23 +95,26 @@ describe("computeWrappedShareability", () => {
       topContactScreenName: null,
       firstTweetText: null,
       firstTweetDate: null,
+      persona: "Broadcaster",
+      personalityLine: "test",
     });
-    expect(old).toBeGreaterThan(young);
+    expect(old.magnitude).toBeGreaterThan(young.magnitude);
   });
 
-  it("clamps to 100", () => {
-    expect(
-      computeWrappedShareability({
-        username: "u",
-        daysOnX: 365 * 100,
-        tweetCount: 0,
-        likeCount: 0,
-        topHashtag: { tag: "x", count: 1 },
-        topHourLabel: "11 PM",
-        topContactScreenName: "alice",
-        firstTweetText: null,
-        firstTweetDate: null,
-      }),
-    ).toBe(100);
+  it("clamps magnitude to 100", () => {
+    const result = computeWrappedShareability({
+      username: "u",
+      daysOnX: 365 * 100,
+      tweetCount: 0,
+      likeCount: 0,
+      topHashtag: { tag: "x", count: 1 },
+      topHourLabel: "11 PM",
+      topContactScreenName: "alice",
+      firstTweetText: null,
+      firstTweetDate: null,
+      persona: "Broadcaster",
+      personalityLine: "test",
+    });
+    expect(result.magnitude).toBe(100);
   });
 });

@@ -26,8 +26,12 @@ import { pipelineCard } from "./cards/pipeline";
 import { xguessesCard } from "./cards/xguesses";
 import { dataBetrayalCard } from "./cards/data-betrayal";
 import { reportCardCard } from "./cards/report-card";
+import { algorithmicMirrorCard } from "./cards/algorithmic-mirror";
+import { adPriceTagCard } from "./cards/ad-price-tag";
 
 export const SHARE_CARDS: readonly RegisteredShareCard[] = [
+  defineShareCard(algorithmicMirrorCard),
+  defineShareCard(adPriceTagCard),
   defineShareCard(deletedTweetsCard),
   defineShareCard(dataBetrayalCard),
   defineShareCard(ghostDataCard),

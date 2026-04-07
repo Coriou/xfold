@@ -65,6 +65,21 @@ export function GhostDataCard(props: GhostDataCardProps) {
             </div>
           ))}
         </div>
+
+        {/* Punchline */}
+        <div
+          style={{
+            fontSize: 16,
+            color: brand.foregroundMuted,
+            textAlign: "center",
+            marginTop: "auto",
+            lineHeight: 1.5,
+            padding: "0 32px",
+          }}
+        >
+          X built a viewer for your data — then left out the parts that matter
+          most.
+        </div>
       </div>
 
       <CardFooter username={props.username} />

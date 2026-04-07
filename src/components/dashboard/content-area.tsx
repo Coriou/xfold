@@ -12,6 +12,10 @@ const SECTION_MAP: Record<
   string,
   React.LazyExoticComponent<SectionComponent>
 > = {
+  "algorithmic-mirror": lazy(
+    () => import("@/components/sections/algorithmic-mirror"),
+  ),
+  "ad-price-tag": lazy(() => import("@/components/sections/ad-price-tag")),
   wrapped: lazy(() => import("@/components/sections/wrapped")),
   overview: lazy(() => import("@/components/sections/overview")),
   "activity-patterns": lazy(

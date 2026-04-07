@@ -1,4 +1,5 @@
 import { brand } from "@/lib/brand";
+import { formatDate } from "@/lib/format";
 import {
   BigNumber,
   CardFooter,
@@ -50,6 +51,18 @@ export function DeletedTweetsCard(props: DeletedTweetsCardProps) {
           {props.percentOfTotal}% of all tweets you ever wrote are ones you
           thought were gone.
         </div>
+        {props.oldestDeletedDate && (
+          <div
+            style={{
+              fontSize: 16,
+              color: brand.foregroundMuted,
+              marginTop: 16,
+              textAlign: "center",
+            }}
+          >
+            The oldest dates back to {formatDate(props.oldestDeletedDate)}.
+          </div>
+        )}
       </div>
 
       <CardFooter username={props.username} />

@@ -10,7 +10,7 @@ export const wrappedCard: ShareCardModule<WrappedCardProps> = {
   meta: {
     id: "wrapped",
     title: "Your X, Wrapped",
-    tagline: "Days on X, top hashtag, top hour, first tweet",
+    tagline: "Your X personality type, top stats, and first tweet",
     category: "headline",
     slug: "wrapped",
   },

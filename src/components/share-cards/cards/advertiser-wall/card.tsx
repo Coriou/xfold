@@ -1,10 +1,5 @@
 import { brand } from "@/lib/brand";
-import {
-  CardFooter,
-  CardFrame,
-  CardHeader,
-  NameList,
-} from "../../_primitives";
+import { CardFooter, CardFrame, CardHeader, NameList } from "../../_primitives";
 import type { AdvertiserWallCardProps } from "./compute";
 
 export function AdvertiserWallCard(props: AdvertiserWallCardProps) {
@@ -48,6 +43,18 @@ export function AdvertiserWallCard(props: AdvertiserWallCardProps) {
         >
           using {props.targetingTypeCount} different targeting methods
         </div>
+        {props.benchmarkLine && (
+          <div
+            style={{
+              fontSize: 16,
+              color: brand.accent,
+              fontWeight: 600,
+              marginTop: 8,
+            }}
+          >
+            {props.benchmarkLine}
+          </div>
+        )}
       </div>
 
       {props.names.length > 0 && (

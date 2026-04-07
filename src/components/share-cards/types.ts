@@ -34,7 +34,9 @@ export type ShareCardId =
   | "pipeline"
   | "xguesses"
   | "data-betrayal"
-  | "report-card";
+  | "report-card"
+  | "algorithmic-mirror"
+  | "ad-price-tag";
 
 export type ShareCardCategory =
   | "headline"

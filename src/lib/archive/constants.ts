@@ -20,6 +20,12 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "highlights",
     label: "Highlights",
     items: [
+      { id: "algorithmic-mirror", label: "X Thinks You Are…" },
+      {
+        id: "ad-price-tag",
+        label: "Your Ad Price Tag",
+        dataKey: "adImpressions",
+      },
       { id: "wrapped", label: "Your X, Wrapped", dataKey: "tweets" },
       { id: "ghost-data", label: "Ghost Data" },
     ],

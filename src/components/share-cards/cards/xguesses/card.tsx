@@ -105,6 +105,21 @@ export function XGuessesCard(props: XGuessesCardProps) {
             </div>
           </div>
         )}
+
+        {/* Why this matters */}
+        {props.unconfirmedMonetized > 0 && (
+          <div
+            style={{
+              fontSize: 16,
+              color: brand.foregroundMuted,
+              textAlign: "center",
+              lineHeight: 1.5,
+              padding: "0 32px",
+            }}
+          >
+            X invented interests for you, then sold ad slots against them.
+          </div>
+        )}
       </div>
 
       <CardFooter username={props.username} />
