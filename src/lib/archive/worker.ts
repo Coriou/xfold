@@ -2,8 +2,16 @@
 // Archive parsing Web Worker
 // ---------------------------------------------------------------------------
 // Uses fflate's streaming Unzip class which processes entries one at a time.
-// Data files (.js) are parsed into structured data. Media files are
-// decompressed and cached in memory for instant access via GET_MEDIA.
+// Data files (.js) are parsed into structured data.
+//
+// Media files are handled in two tiers:
+//   1. Hot cache — the first chunk of media (up to MAX_MEDIA_CACHE_BYTES)
+//      is decompressed during parse and held in memory for instant access.
+//   2. Cold fallback — anything beyond the budget stays compressed in the
+//      retained ZIP buffer and is lazily re-extracted on demand. This
+//      caps the worker's RSS at "ZIP size + cache budget" instead of
+//      "every media file fully decompressed at once", which used to OOM
+//      on multi-GB archives on mobile.
 // ---------------------------------------------------------------------------
 
 import { Unzip, UnzipInflate, UnzipPassThrough, strFromU8 } from "fflate";
@@ -16,8 +24,17 @@ import type {
   ParseErrorCode,
 } from "./worker-protocol";
 
+/** Hot cache budget: how much decompressed media we hold in RAM at once. */
+const MAX_MEDIA_CACHE_BYTES = 256 * 1024 * 1024; // 256 MB
+
 // Cache of decompressed media files (path -> bytes)
 const mediaCache = new Map<string, Uint8Array>();
+/** Running total of cached media bytes (so we can stay under the budget). */
+let cachedMediaBytes = 0;
+/** Paths we saw during parse but skipped caching for budget reasons. */
+const coldMediaPaths = new Set<string>();
+/** The retained ZIP buffer for lazy cold-path extraction. Cleared on cancel. */
+let retainedZip: Uint8Array | null = null;
 
 /** Set when the main thread sends CANCEL_PARSE. The parsing loop checks this. */
 let cancelRequested = false;
@@ -89,6 +106,11 @@ function handleParse(buffer: ArrayBuffer) {
     let totalEntries = 0;
 
     mediaCache.clear();
+    cachedMediaBytes = 0;
+    coldMediaPaths.clear();
+    // Retain the original ZIP for lazy extraction of cold-cache media.
+    // The previous implementation let this go out of scope after parse.
+    retainedZip = zipData;
 
     const uz = new Unzip((file) => {
       totalEntries++;
@@ -106,13 +128,26 @@ function handleParse(buffer: ArrayBuffer) {
         return;
       }
 
-      // Media file: decompress and cache for instant GET_MEDIA access
+      // Media file: decompress and cache up to the hot-cache budget. Past
+      // the budget, just record the path — we'll lazy-extract on demand.
       if (isMediaPath(lower)) {
         mediaCount++;
+        if (cachedMediaBytes >= MAX_MEDIA_CACHE_BYTES) {
+          coldMediaPaths.add(name);
+          return;
+        }
         const chunks: Uint8Array[] = [];
         file.ondata = (_err, chunk, final) => {
           chunks.push(chunk);
-          if (final) mediaCache.set(name, combineChunks(chunks));
+          if (final) {
+            const combined = combineChunks(chunks);
+            if (cachedMediaBytes + combined.byteLength <= MAX_MEDIA_CACHE_BYTES) {
+              mediaCache.set(name, combined);
+              cachedMediaBytes += combined.byteLength;
+            } else {
+              coldMediaPaths.add(name);
+            }
+          }
         };
         file.start();
         return;
@@ -226,6 +261,9 @@ function handleParse(buffer: ArrayBuffer) {
   } catch (err) {
     if (err instanceof CancelledError) {
       mediaCache.clear();
+      cachedMediaBytes = 0;
+      coldMediaPaths.clear();
+      retainedZip = null;
       const out: WorkerOutMessage = { type: "PARSE_CANCELLED" };
       self.postMessage(out);
       return;
@@ -253,12 +291,23 @@ function handleParse(buffer: ArrayBuffer) {
 }
 
 // ---------------------------------------------------------------------------
-// Instant media access from cache
+// Media access — hot cache first, lazy ZIP re-extract on miss
 // ---------------------------------------------------------------------------
 
 function handleGetMedia(path: string, requestId: string) {
-  // Try exact match first, then fuzzy
-  const bytes = mediaCache.get(path) ?? findMediaFuzzy(path);
+  // Try the hot cache first (exact then fuzzy on filename).
+  let bytes: Uint8Array | undefined =
+    mediaCache.get(path) ?? findMediaFuzzy(path);
+
+  // Cold fallback: if we deferred this path during parse, re-extract it
+  // from the retained ZIP. Single-shot decompression — bytes are NOT
+  // promoted into the hot cache so the budget invariant holds.
+  if (!bytes && retainedZip) {
+    const resolved = resolveColdPath(path);
+    if (resolved) {
+      bytes = lazyExtract(retainedZip, resolved) ?? undefined;
+    }
+  }
 
   if (!bytes) {
     const out: WorkerOutMessage = { type: "MEDIA_RESULT", requestId, buffer: null };
@@ -289,6 +338,55 @@ function findMediaFuzzy(path: string): Uint8Array | undefined {
     }
   }
   return undefined;
+}
+
+/**
+ * Find the cold-cache key for `path`, allowing the same fuzzy match the hot
+ * path uses. Returns undefined if the file isn't tracked at all.
+ */
+function resolveColdPath(path: string): string | undefined {
+  if (coldMediaPaths.has(path)) return path;
+  const filename = path.split("/").pop();
+  if (!filename) return undefined;
+  for (const key of coldMediaPaths) {
+    if (key.endsWith("/" + filename) || key === filename) return key;
+  }
+  return undefined;
+}
+
+/**
+ * Stream the retained ZIP and decompress just one entry. Bails out as soon
+ * as the target is fully consumed so we don't pay for the tail.
+ *
+ * We hold the result in an object reference so TypeScript doesn't narrow
+ * the closure-mutated `value` to its initial `null` for the loop below.
+ */
+function lazyExtract(
+  zipBuffer: Uint8Array,
+  targetPath: string,
+): Uint8Array | null {
+  const slot: { value: Uint8Array | null } = { value: null };
+
+  const uz = new Unzip((file) => {
+    if (file.name !== targetPath) return; // skip — never .start()ing means no decode
+    const chunks: Uint8Array[] = [];
+    file.ondata = (_err, chunk, final) => {
+      chunks.push(chunk);
+      if (final) slot.value = combineChunks(chunks);
+    };
+    file.start();
+  });
+  uz.register(UnzipInflate);
+  uz.register(UnzipPassThrough);
+
+  const CHUNK = 65536;
+  for (let i = 0; i < zipBuffer.length; i += CHUNK) {
+    const end = Math.min(i + CHUNK, zipBuffer.length);
+    uz.push(zipBuffer.subarray(i, end), end === zipBuffer.length);
+    if (slot.value !== null) break; // target fully decoded, skip the tail
+  }
+
+  return slot.value;
 }
 
 // ---------------------------------------------------------------------------

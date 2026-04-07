@@ -14,17 +14,17 @@ import { formatDate } from "@/lib/format";
 const CATEGORY_COLORS: Record<ErosionLayer["category"], string> = {
   content: "bg-accent",
   surveillance: "bg-danger",
-  monetization: "bg-[oklch(0.65_0.12_90)]",
-  ai: "bg-[oklch(0.72_0.12_145)]",
-  "third-party": "bg-[oklch(0.72_0.15_280)]",
+  monetization: "bg-chart-monetization",
+  ai: "bg-chart-ai",
+  "third-party": "bg-chart-third-party",
 };
 
 const CATEGORY_TEXT: Record<ErosionLayer["category"], string> = {
   content: "text-accent",
   surveillance: "text-danger",
-  monetization: "text-[oklch(0.65_0.12_90)]",
-  ai: "text-[oklch(0.72_0.12_145)]",
-  "third-party": "text-[oklch(0.72_0.15_280)]",
+  monetization: "text-chart-monetization",
+  ai: "text-chart-ai",
+  "third-party": "text-chart-third-party",
 };
 
 const CATEGORY_LABELS: Record<ErosionLayer["category"], string> = {

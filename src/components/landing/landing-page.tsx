@@ -5,7 +5,7 @@ import { UploadZone } from "./upload-zone";
 import { ProgressBar } from "@/components/shared/progress-bar";
 
 export function LandingPage() {
-  const { state, loadArchive, cancelParse, reset } = useArchive();
+  const { state, loadArchive, loadDemoArchive, cancelParse, reset } = useArchive();
   const isLoading = state.status === "loading";
 
   return (
@@ -32,7 +32,17 @@ export function LandingPage() {
             </button>
           </div>
         ) : (
-          <UploadZone onFile={loadArchive} disabled={isLoading} />
+          <>
+            <UploadZone onFile={loadArchive} disabled={isLoading} />
+            {/* Demo mode — try the dashboard before downloading anything */}
+            <button
+              type="button"
+              onClick={loadDemoArchive}
+              className="mt-4 text-xs text-foreground-muted underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded"
+            >
+              No archive yet? Try with sample data →
+            </button>
+          </>
         )}
 
         {/* Error state */}

@@ -13,6 +13,7 @@ import {
   loadArchive as idbLoad,
   clearArchive as idbClear,
 } from "./idb-cache";
+import { buildDemoArchive } from "./demo-archive";
 
 // ---------------------------------------------------------------------------
 // State machine
@@ -193,9 +194,20 @@ export function useArchiveWorker() {
     setState({ status: "idle" });
   }, []);
 
+  /**
+   * Load the bundled demo archive into the dashboard. Bypasses the worker
+   * and the IDB cache entirely — the demo is meant to be a stateless
+   * "what does this look like" view, not a thing the user persists.
+   */
+  const loadDemoArchive = useCallback(() => {
+    const archive = buildDemoArchive();
+    setState({ status: "ready", archive });
+  }, []);
+
   return {
     state,
     loadArchive,
+    loadDemoArchive,
     cancelParse,
     dismissWarnings,
     getMedia,

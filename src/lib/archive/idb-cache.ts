@@ -86,7 +86,8 @@ export async function saveArchive(archive: ParsedArchive): Promise<void> {
 
 /**
  * Load and decompress the cached archive, if any. Returns null if missing,
- * stale, or unreadable.
+ * stale, unreadable, or if the cached object's shape doesn't match the
+ * current ParsedArchive contract.
  */
 export async function loadArchive(): Promise<ParsedArchive | null> {
   try {
@@ -104,10 +105,80 @@ export async function loadArchive(): Promise<ParsedArchive | null> {
 
     const decompressed = gunzipSync(entry.compressed);
     const json = strFromU8(decompressed);
-    return JSON.parse(json) as ParsedArchive;
+    const parsed: unknown = JSON.parse(json);
+    if (!isValidParsedArchive(parsed)) return null;
+    return parsed;
   } catch {
     return null;
   }
+}
+
+/**
+ * Defensive shape check for the cached archive. Verifies the *required*
+ * top-level fields exist with the right primitive shapes. Catches the case
+ * where IDB returns data from a build that didn't bump CACHE_VERSION but
+ * silently changed the schema — without this guard, downstream code that
+ * trusts e.g. `archive.tweets.length` would crash on `undefined.length`.
+ *
+ * We don't deep-validate every field — that's the type system's job at
+ * compile time. We just check the keys whose absence would crash an
+ * insight on access.
+ */
+function isValidParsedArchive(value: unknown): value is ParsedArchive {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+
+  // Object/null fields
+  if (!isObjectOrNull(v["meta"])) return false;
+  if (!isObjectOrNull(v["stats"])) return false;
+  if (!("account" in v) || !isObjectOrNull(v["account"])) return false;
+  if (!("profile" in v) || !isObjectOrNull(v["profile"])) return false;
+  if (!("personalization" in v) || !isObjectOrNull(v["personalization"])) {
+    return false;
+  }
+  if (!isObjectOrNull(v["offTwitter"])) return false;
+
+  // Array fields — list every field whose absence would crash an insight
+  const arrayFields = [
+    "tweets",
+    "likes",
+    "directMessages",
+    "followers",
+    "following",
+    "blocks",
+    "adEngagements",
+    "adImpressions",
+    "ipAudit",
+    "deviceTokens",
+    "connectedApps",
+    "niDevices",
+    "keyRegistryDevices",
+    "grokConversations",
+    "screenNameChanges",
+    "lists",
+    "deletedTweets",
+    "contacts",
+    "mutes",
+    "dmMutes",
+    "groupDirectMessages",
+    "suspensions",
+    "emailChanges",
+    "protectedHistory",
+    "savedSearches",
+    "communityNotes",
+    "communityNoteRatings",
+  ] as const;
+  for (const field of arrayFields) {
+    if (!Array.isArray(v[field])) return false;
+  }
+
+  return true;
+}
+
+function isObjectOrNull(value: unknown): boolean {
+  // typeof null === "object", so this single check covers both:
+  // a real object and an explicit null. Anything else fails.
+  return typeof value === "object";
 }
 
 /**

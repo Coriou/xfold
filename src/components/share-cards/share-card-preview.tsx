@@ -27,6 +27,9 @@ export function ShareCardPreview({ card, username }: ShareCardPreviewProps) {
       const maxW = window.innerWidth * 0.85;
       // Leave room for the thumbnail strip + button below.
       const maxH = window.innerHeight * 0.6;
+      // Cap at 1.0 — never upscale the card past its native 1080×1080.
+      // Without the cap, large desktops produced scale > 1 which made
+      // the preview look pixelated and boxed-shadow at the wrong scale.
       setScale(Math.min(maxW / SHARE_CARD_SIZE, maxH / SHARE_CARD_SIZE, 1));
     }
     update();

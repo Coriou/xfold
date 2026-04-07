@@ -10,6 +10,7 @@ import { useArchiveWorker, type ArchiveState } from "./use-archive";
 interface ArchiveContextValue {
   state: ArchiveState;
   loadArchive: (file: File) => void;
+  loadDemoArchive: () => void;
   cancelParse: () => void;
   dismissWarnings: () => void;
   getMedia: (path: string) => Promise<Blob | null>;

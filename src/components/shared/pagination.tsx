@@ -22,18 +22,26 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
         onClick={() => onPageChange(0)}
         disabled={page === 0}
         aria-label="First page"
+        title="First page"
         className={BUTTON_BASE}
       >
-        First
+        <span className="sm:hidden" aria-hidden="true">
+          «
+        </span>
+        <span className="hidden sm:inline">First</span>
       </button>
       <button
         type="button"
         onClick={() => onPageChange(page - 1)}
         disabled={page === 0}
         aria-label="Previous page"
+        title="Previous page"
         className={BUTTON_BASE}
       >
-        Prev
+        <span className="sm:hidden" aria-hidden="true">
+          ‹
+        </span>
+        <span className="hidden sm:inline">Prev</span>
       </button>
       <span
         className="min-h-[40px] px-2 inline-flex items-center text-sm text-foreground-muted"
@@ -49,18 +57,26 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
         onClick={() => onPageChange(page + 1)}
         disabled={page >= totalPages - 1}
         aria-label="Next page"
+        title="Next page"
         className={BUTTON_BASE}
       >
-        Next
+        <span className="sm:hidden" aria-hidden="true">
+          ›
+        </span>
+        <span className="hidden sm:inline">Next</span>
       </button>
       <button
         type="button"
         onClick={() => onPageChange(totalPages - 1)}
         disabled={page >= totalPages - 1}
         aria-label="Last page"
+        title="Last page"
         className={BUTTON_BASE}
       >
-        Last
+        <span className="sm:hidden" aria-hidden="true">
+          »
+        </span>
+        <span className="hidden sm:inline">Last</span>
       </button>
     </nav>
   );

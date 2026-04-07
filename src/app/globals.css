@@ -18,6 +18,13 @@
   --danger: oklch(0.65 0.2 25);
   --border: oklch(0.22 0.005 260);
   --border-hover: oklch(0.30 0.01 260);
+
+  /* Categorical chart palette — used by stacked timelines and category
+   * legends so charts share one source of truth instead of inline oklch
+   * literals scattered across components. */
+  --chart-monetization: oklch(0.65 0.12 90);
+  --chart-ai: oklch(0.72 0.12 145);
+  --chart-third-party: oklch(0.72 0.15 280);
 }
 
 @theme inline {
@@ -32,6 +39,9 @@
   --color-danger: var(--danger);
   --color-border: var(--border);
   --color-border-hover: var(--border-hover);
+  --color-chart-monetization: var(--chart-monetization);
+  --color-chart-ai: var(--chart-ai);
+  --color-chart-third-party: var(--chart-third-party);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

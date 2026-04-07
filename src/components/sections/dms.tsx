@@ -6,6 +6,7 @@ import { SectionHeader } from "@/components/shared/section-header";
 import { SearchInput } from "@/components/shared/search-input";
 import { PillBadge } from "@/components/shared/pill-badge";
 import { formatDateTime, truncate, pluralize } from "@/lib/format";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 export default function DirectMessages({
   archive,
@@ -14,6 +15,9 @@ export default function DirectMessages({
 }) {
   const selfId = archive.meta.accountId;
   const [search, setSearch] = useState("");
+  // Debounce so a user with thousands of conversations doesn't re-filter
+  // on every keystroke.
+  const debouncedSearch = useDebouncedValue(search, 200);
 
   const conversations = useMemo(() => {
     const sorted = [...archive.directMessages].sort((a, b) => {
@@ -21,12 +25,12 @@ export default function DirectMessages({
       const bLast = b.messages[b.messages.length - 1]?.createdAt ?? "";
       return bLast.localeCompare(aLast);
     });
-    if (!search) return sorted;
-    const q = search.toLowerCase();
+    if (!debouncedSearch) return sorted;
+    const q = debouncedSearch.toLowerCase();
     return sorted.filter((c) =>
       c.messages.some((m) => m.text.toLowerCase().includes(q)),
     );
-  }, [archive.directMessages, search]);
+  }, [archive.directMessages, debouncedSearch]);
 
   const totalMessages = archive.directMessages.reduce(
     (s, c) => s + c.messages.length,

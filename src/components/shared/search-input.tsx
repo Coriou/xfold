@@ -53,7 +53,7 @@ export function SearchInput({
           }
         }}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-border bg-background-raised py-2 pl-9 pr-24 text-sm text-foreground placeholder:text-foreground-muted/50 transition-colors focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+        className="w-full rounded-lg border border-border bg-background-raised py-2 pl-9 pr-24 text-sm text-foreground placeholder:text-foreground-muted transition-colors focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       />
       {count !== undefined && (
         <span

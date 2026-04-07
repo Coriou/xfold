@@ -14,6 +14,7 @@ import { formatDate, truncate, pluralize, formatNumber, parseDate, toMonthKey } 
 import { getLanguageName } from "@/lib/language-names";
 import { StackedBarTimeline, type TimelineBucket } from "@/components/shared/stacked-bar-timeline";
 import { chartColors } from "@/lib/brand";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import {
   buildTweetClientJourney,
   type ClientJourneyEntry,
@@ -26,6 +27,10 @@ export default function Tweets({ archive }: { archive: ParsedArchive }) {
   const [view, setView] = useState<View>("timeline");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  // Filtering hundreds of thousands of tweets on every keystroke is a
+  // visible UX hit. Debouncing 200ms keeps the input responsive while
+  // amortising the work to once-per-pause.
+  const debouncedSearch = useDebouncedValue(search, 200);
 
   const tweets = archive.tweets;
   const originals = tweets.filter((t) => !t.isRetweet && !t.inReplyToStatusId);
@@ -33,7 +38,7 @@ export default function Tweets({ archive }: { archive: ParsedArchive }) {
   const retweets = tweets.filter((t) => t.isRetweet);
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
     if (!q) return tweets;
     return tweets.filter(
       (t) =>
@@ -41,7 +46,7 @@ export default function Tweets({ archive }: { archive: ParsedArchive }) {
         t.hashtags.some((h) => h.toLowerCase().includes(q)) ||
         t.mentions.some((m) => m.screenName.toLowerCase().includes(q)),
     );
-  }, [tweets, search]);
+  }, [tweets, debouncedSearch]);
 
   const pageData = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
