@@ -8,10 +8,8 @@
 // discriminated union, no per-card switch on `id` for consumers.
 // ---------------------------------------------------------------------------
 
-import type {
-  RegisteredShareCard,
-  ShareCardModule,
-} from "./types";
+import { combineShareability, normalizeShareability } from "./auto-pick";
+import type { RegisteredShareCard, ShareCardModule } from "./types";
 
 export function defineShareCard<TProps extends object>(
   module: ShareCardModule<TProps>,
@@ -22,9 +20,11 @@ export function defineShareCard<TProps extends object>(
     evaluate(ctx) {
       const props = compute(ctx);
       if (props === null) return null;
+      const breakdown = normalizeShareability(shareabilityScore(props, ctx));
       return {
         meta,
-        shareability: shareabilityScore(props, ctx),
+        shareability: combineShareability(breakdown),
+        breakdown,
         render: () => <Component {...props} />,
       };
     },
