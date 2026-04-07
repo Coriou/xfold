@@ -22,12 +22,18 @@ import { dossierCard } from "./cards/dossier";
 import { deletedTweetsCard } from "./cards/deleted-tweets";
 import { ghostDataCard } from "./cards/ghost-data";
 import { contactsCard } from "./cards/contacts-card";
+import { pipelineCard } from "./cards/pipeline";
+import { xguessesCard } from "./cards/xguesses";
+import { dataBetrayalCard } from "./cards/data-betrayal";
 
 export const SHARE_CARDS: readonly RegisteredShareCard[] = [
   defineShareCard(deletedTweetsCard),
+  defineShareCard(dataBetrayalCard),
   defineShareCard(ghostDataCard),
   defineShareCard(contactsCard),
   defineShareCard(receiptCard),
+  defineShareCard(pipelineCard),
+  defineShareCard(xguessesCard),
   defineShareCard(wrappedCard),
   defineShareCard(askedGrokCard),
   defineShareCard(dossierCard),

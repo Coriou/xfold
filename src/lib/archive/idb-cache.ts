@@ -16,8 +16,14 @@ const DB_VERSION = 1;
  * v4 added the `deviceId` field on AdImpression so the device-fingerprint
  * trail insight can group impressions by the hashed device identifier
  * advertisers share to retarget across campaigns.
+ *
+ * v5 added eleven required "hidden data" fields on ParsedArchive: deletedTweets,
+ * contacts, mutes, dmMutes, groupDirectMessages, suspensions, emailChanges,
+ * protectedHistory, savedSearches, communityNotes, communityNoteRatings. Older
+ * caches load back without these fields, which crashes compute functions that
+ * trust the type contract (e.g. `archive.deletedTweets.length`).
  */
-const CACHE_VERSION = 4;
+const CACHE_VERSION = 5;
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {

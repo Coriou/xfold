@@ -6,7 +6,11 @@ import {
   CardHeader,
   ScoreRingSvg,
 } from "../../_primitives";
-import type { ScoreCardProps, ScoreCardQuote } from "./compute";
+import type {
+  ScoreCardProps,
+  ScoreCardQuote,
+  ScoreCardReceipt,
+} from "./compute";
 
 export function ScoreCard(props: ScoreCardProps) {
   return (
@@ -19,16 +23,16 @@ export function ScoreCard(props: ScoreCardProps) {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          marginTop: 16,
-          marginBottom: 24,
+          marginTop: 12,
+          marginBottom: 16,
         }}
       >
-        <ScoreRingSvg score={props.overall} grade={props.grade} size={200} />
+        <ScoreRingSvg score={props.overall} grade={props.grade} size={180} />
         <div
           style={{
             fontSize: 18,
             color: brand.foregroundMuted,
-            marginTop: 14,
+            marginTop: 10,
           }}
         >
           X Exposure Score
@@ -38,22 +42,28 @@ export function ScoreCard(props: ScoreCardProps) {
       {/* Headline */}
       <div
         style={{
-          fontSize: 22,
+          fontSize: 20,
           lineHeight: 1.35,
           fontWeight: 600,
           color: brand.foreground,
           textAlign: "center",
-          marginBottom: 24,
+          marginBottom: 20,
           padding: "0 24px",
         }}
       >
         {props.headline}
       </div>
 
-      {/* Quote receipt OR fallback bullets */}
-      {props.quote ? (
-        <ReceiptBlock quote={props.quote} />
-      ) : (
+      {/* Cross-domain receipts */}
+      {props.receipts.length > 0 && <ReceiptStack receipts={props.receipts} />}
+
+      {/* Quote receipt (if available and space permits) */}
+      {props.quote && props.receipts.length < 2 && (
+        <QuoteReceipt quote={props.quote} />
+      )}
+
+      {/* Fallback bullets when neither receipts nor quote */}
+      {props.receipts.length === 0 && !props.quote && (
         <BulletList bullets={props.bullets} />
       )}
 
@@ -62,13 +72,54 @@ export function ScoreCard(props: ScoreCardProps) {
   );
 }
 
-function ReceiptBlock({ quote }: { quote: ScoreCardQuote }) {
+function ReceiptStack({ receipts }: { receipts: readonly ScoreCardReceipt[] }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {receipts.map((r, i) => {
+        const color =
+          r.severity === "high"
+            ? brand.danger
+            : r.severity === "medium"
+              ? brand.foreground
+              : brand.foregroundMuted;
+        return (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              padding: "14px 20px",
+              backgroundColor: brand.backgroundRaised,
+              borderRadius: 10,
+              borderLeft: `3px solid ${color}`,
+            }}
+          >
+            <span style={{ fontSize: 22 }}>{r.icon}</span>
+            <span
+              style={{
+                fontSize: 17,
+                color: brand.foreground,
+                lineHeight: 1.35,
+                fontWeight: 500,
+              }}
+            >
+              {r.text}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function QuoteReceipt({ quote }: { quote: ScoreCardQuote }) {
   const isHigh = quote.severity === "high";
   return (
     <div
       style={{
-        margin: "0 8px",
-        padding: "20px 24px",
+        margin: "8px 0 0",
+        padding: "16px 20px",
         backgroundColor: brand.backgroundRaised,
         borderRadius: 12,
         borderLeft: `4px solid ${isHigh ? brand.danger : brand.accent}`,
@@ -80,14 +131,14 @@ function ReceiptBlock({ quote }: { quote: ScoreCardQuote }) {
           color: brand.foregroundMuted,
           letterSpacing: 2,
           fontFamily: "monospace",
-          marginBottom: 8,
+          marginBottom: 6,
         }}
       >
         EVIDENCE
       </div>
       <div
         style={{
-          fontSize: 24,
+          fontSize: 20,
           color: brand.foreground,
           lineHeight: 1.4,
           fontWeight: 600,
@@ -97,9 +148,9 @@ function ReceiptBlock({ quote }: { quote: ScoreCardQuote }) {
       </div>
       <div
         style={{
-          fontSize: 14,
+          fontSize: 13,
           color: brand.foregroundMuted,
-          marginTop: 12,
+          marginTop: 8,
           lineHeight: 1.4,
         }}
       >

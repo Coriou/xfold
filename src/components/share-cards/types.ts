@@ -30,7 +30,10 @@ export type ShareCardId =
   | "dossier"
   | "deleted-tweets"
   | "ghost-data"
-  | "contacts";
+  | "contacts"
+  | "pipeline"
+  | "xguesses"
+  | "data-betrayal";
 
 export type ShareCardCategory =
   | "headline"

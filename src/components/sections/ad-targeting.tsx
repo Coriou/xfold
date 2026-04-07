@@ -14,11 +14,7 @@ interface AggCriterion {
   count: number;
 }
 
-export default function AdTargeting({
-  archive,
-}: {
-  archive: ParsedArchive;
-}) {
+export default function AdTargeting({ archive }: { archive: ParsedArchive }) {
   const [search, setSearch] = useState("");
 
   const stats = useMemo(() => {

@@ -38,6 +38,14 @@ export default function Overview({ archive }: { archive: ParsedArchive }) {
 
     const COLORS: Record<string, string> = chartColors;
 
+    // Twitter launched March 21, 2006. Dates before that are either parse
+    // failures that landed on epoch-0 or sentinel rows X ships (e.g. a device
+    // token with createdAt "1970-01-01T00:00:00.000Z" and clientApplicationId
+    // "-1"). Either way they aren't real data-collection events, and letting
+    // them through drags `globalMin` back to 1970 and squishes every other
+    // bar into a sliver of the axis.
+    const TWITTER_EPOCH = Date.UTC(2006, 0, 1);
+
     function dateRange(
       label: string,
       dates: (string | undefined | null)[],
@@ -50,6 +58,7 @@ export default function Overview({ archive }: { archive: ParsedArchive }) {
         const d = parseDate(s);
         if (!d) continue;
         const t = d.getTime();
+        if (t < TWITTER_EPOCH) continue;
         if (t < min) min = t;
         if (t > max) max = t;
         count++;
@@ -202,71 +211,106 @@ export default function Overview({ archive }: { archive: ParsedArchive }) {
           <p className="mb-4 text-sm text-foreground-muted">
             When X started collecting each type of your data.
           </p>
-          <div className="relative space-y-2.5">
-            {/* Account creation reference line */}
-            {footprint.accountCreated && (
-              <div
-                className="absolute top-0 bottom-0 w-px border-l border-dashed border-foreground-muted/30"
-                style={{
-                  left: `${8 + ((footprint.accountCreated.getTime() - footprint.globalMin) / (footprint.globalMax - footprint.globalMin || 1)) * 72}%`,
-                }}
-                title={`Account created: ${formatDate(footprint.accountCreated.toISOString())}`}
-              />
-            )}
+          {(() => {
+            const span = footprint.globalMax - footprint.globalMin || 1;
+            // The track column (the progress bar) is bounded by the label
+            // column on the left (w-28 + gap-3 = 7.75rem) and the event-count
+            // column on the right (w-20 + gap-3 = 5.75rem). Both the dashed
+            // reference line and the year markers need to live inside this
+            // same horizontal band so they align with the bars above them.
+            const trackInsetLeft = "calc(7rem + 0.75rem)";
+            const trackInsetRight = "calc(5rem + 0.75rem)";
 
-            {footprint.ranges.map((range) => {
-              const span = footprint.globalMax - footprint.globalMin || 1;
-              const left =
-                ((range.first.getTime() - footprint.globalMin) / span) * 72;
-              const width =
-                ((range.last.getTime() - range.first.getTime()) / span) * 72;
-
-              return (
-                <div key={range.label} className="flex items-center gap-3">
-                  <span className="w-28 shrink-0 text-right text-xs text-foreground-muted">
-                    {range.label}
-                  </span>
-                  <div className="relative h-3 flex-1 overflow-hidden rounded-full bg-foreground/5">
+            return (
+              <>
+                <div className="relative space-y-2.5">
+                  {/* Account creation reference line — positioned inside an
+                      inset wrapper so the percentage math is against the
+                      track width, not the full row width. */}
+                  {footprint.accountCreated && (
                     <div
-                      className="absolute h-full rounded-full"
+                      className="pointer-events-none absolute top-0 bottom-0"
                       style={{
-                        left: `${left}%`,
-                        width: `${Math.max(width, 1.5)}%`,
-                        backgroundColor: range.color,
+                        left: trackInsetLeft,
+                        right: trackInsetRight,
                       }}
-                      title={`${formatDate(range.first.toISOString())} – ${formatDate(range.last.toISOString())}`}
-                    />
-                  </div>
-                  <span className="w-20 shrink-0 text-right text-xs text-foreground-muted">
-                    {pluralize(range.count, "event")}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                    >
+                      <div
+                        className="absolute top-0 bottom-0 w-px border-l border-dashed border-foreground-muted/30"
+                        style={{
+                          left: `${((footprint.accountCreated.getTime() - footprint.globalMin) / span) * 100}%`,
+                        }}
+                        title={`Account created: ${formatDate(footprint.accountCreated.toISOString())}`}
+                      />
+                    </div>
+                  )}
 
-          {/* Year markers */}
-          <div
-            className="mt-2 flex"
-            style={{ paddingLeft: "calc(7rem + 0.75rem)" }}
-          >
-            <div className="flex flex-1 justify-between text-[10px] text-foreground-muted/50">
-              {(() => {
-                const minYear = new Date(footprint.globalMin).getFullYear();
-                const maxYear = new Date(footprint.globalMax).getFullYear();
-                const years: number[] = [];
-                for (
-                  let y = minYear;
-                  y <= maxYear;
-                  y += Math.max(1, Math.floor((maxYear - minYear) / 6))
-                ) {
-                  years.push(y);
-                }
-                if (!years.includes(maxYear)) years.push(maxYear);
-                return years.map((y) => <span key={y}>{y}</span>);
-              })()}
-            </div>
-          </div>
+                  {footprint.ranges.map((range) => {
+                    const left =
+                      ((range.first.getTime() - footprint.globalMin) / span) *
+                      100;
+                    const width =
+                      ((range.last.getTime() - range.first.getTime()) / span) *
+                      100;
+
+                    return (
+                      <div
+                        key={range.label}
+                        className="flex items-center gap-3"
+                      >
+                        <span className="w-28 shrink-0 text-right text-xs text-foreground-muted">
+                          {range.label}
+                        </span>
+                        <div className="relative h-3 flex-1 overflow-hidden rounded-full bg-foreground/5">
+                          <div
+                            className="absolute h-full rounded-full"
+                            style={{
+                              left: `${left}%`,
+                              width: `${Math.max(width, 1.5)}%`,
+                              backgroundColor: range.color,
+                            }}
+                            title={`${formatDate(range.first.toISOString())} – ${formatDate(range.last.toISOString())}`}
+                          />
+                        </div>
+                        <span className="w-20 shrink-0 text-right text-xs text-foreground-muted">
+                          {pluralize(range.count, "event")}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Year markers — same inset as the tracks above so labels
+                    line up with the bars they describe. */}
+                <div
+                  className="mt-2 flex justify-between text-[10px] text-foreground-muted/50"
+                  style={{
+                    paddingLeft: trackInsetLeft,
+                    paddingRight: trackInsetRight,
+                  }}
+                >
+                  {(() => {
+                    const minYear = new Date(
+                      footprint.globalMin,
+                    ).getFullYear();
+                    const maxYear = new Date(
+                      footprint.globalMax,
+                    ).getFullYear();
+                    const years: number[] = [];
+                    for (
+                      let y = minYear;
+                      y <= maxYear;
+                      y += Math.max(1, Math.floor((maxYear - minYear) / 6))
+                    ) {
+                      years.push(y);
+                    }
+                    if (!years.includes(maxYear)) years.push(maxYear);
+                    return years.map((y) => <span key={y}>{y}</span>);
+                  })()}
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
 

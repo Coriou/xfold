@@ -25,7 +25,7 @@ export function detectGhostData(archive: ParsedArchive): GhostDataCategory[] {
   const candidates: GhostDataCategory[] = [];
 
   // Deleted tweets
-  const deletedTweets = archive.deletedTweets ?? [];
+  const deletedTweets = archive.deletedTweets;
   if (deletedTweets.length > 0) {
     candidates.push({
       id: "deleted-tweets",
@@ -39,7 +39,7 @@ export function detectGhostData(archive: ParsedArchive): GhostDataCategory[] {
   }
 
   // Uploaded contacts
-  const contacts = archive.contacts ?? [];
+  const contacts = archive.contacts;
   if (contacts.length > 0) {
     candidates.push({
       id: "contacts",
@@ -113,7 +113,7 @@ export function detectGhostData(archive: ParsedArchive): GhostDataCategory[] {
   }
 
   // Muted accounts
-  const mutes = archive.mutes ?? [];
+  const mutes = archive.mutes;
   if (mutes.length > 0) {
     candidates.push({
       id: "mutes",
@@ -127,7 +127,7 @@ export function detectGhostData(archive: ParsedArchive): GhostDataCategory[] {
   }
 
   // Saved searches
-  const savedSearches = archive.savedSearches ?? [];
+  const savedSearches = archive.savedSearches;
   if (savedSearches.length > 0) {
     candidates.push({
       id: "saved-searches",
@@ -141,8 +141,8 @@ export function detectGhostData(archive: ParsedArchive): GhostDataCategory[] {
   }
 
   // Community notes
-  const communityNotes = archive.communityNotes ?? [];
-  const communityNoteRatings = archive.communityNoteRatings ?? [];
+  const communityNotes = archive.communityNotes;
+  const communityNoteRatings = archive.communityNoteRatings;
   if (communityNotes.length > 0 || communityNoteRatings.length > 0) {
     const total = communityNotes.length + communityNoteRatings.length;
     candidates.push({

@@ -415,8 +415,8 @@ function buildAnalogy(archive: ParsedArchive, score: number): string {
   }
 
   // Pick the most visceral analogy based on what's most extreme
-  const deletedCount = archive.deletedTweets?.length ?? 0;
-  const contactCount = archive.contacts?.length ?? 0;
+  const deletedCount = archive.deletedTweets.length;
+  const contactCount = archive.contacts.length;
   if (deletedCount > 50) {
     return `You deleted ${deletedCount.toLocaleString()} tweets thinking they were gone. X kept every single one.`;
   }
