@@ -37,8 +37,13 @@ import { surveillanceTimelineCard } from "./cards/surveillance-timeline";
 import { xErasCard } from "./cards/x-eras";
 import { betrayalStackCard } from "./cards/betrayal-stack";
 import { accuracyAuditCard } from "./cards/accuracy-audit";
+import { topFindingCard } from "./cards/top-finding";
+import { securityAuditCard } from "./cards/security-audit";
+import { erosionCard } from "./cards/erosion";
+import { benchmarkCard } from "./cards/benchmark";
 
 export const SHARE_CARDS: readonly RegisteredShareCard[] = [
+  defineShareCard(topFindingCard),
   defineShareCard(plainEnglishCard),
   defineShareCard(betrayalStackCard),
   defineShareCard(accuracyAuditCard),
@@ -65,6 +70,9 @@ export const SHARE_CARDS: readonly RegisteredShareCard[] = [
   defineShareCard(advertiserWallCard),
   defineShareCard(offTwitterCard),
   defineShareCard(identityTimelineCard),
+  defineShareCard(securityAuditCard),
+  defineShareCard(erosionCard),
+  defineShareCard(benchmarkCard),
   defineShareCard(reportCardCard),
   defineShareCard(scoreCard),
 ];

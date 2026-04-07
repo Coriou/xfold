@@ -45,7 +45,11 @@ export type ShareCardId =
   | "surveillance-timeline"
   | "x-eras"
   | "betrayal-stack"
-  | "accuracy-audit";
+  | "accuracy-audit"
+  | "top-finding"
+  | "security-audit"
+  | "erosion"
+  | "benchmark";
 
 export type ShareCardCategory =
   | "headline"

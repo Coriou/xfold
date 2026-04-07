@@ -6,7 +6,10 @@ import type { ParsedArchive } from "@/lib/archive/types";
 import { SectionPlaceholder } from "./section-placeholder";
 import SectionErrorBoundary from "./section-error-boundary";
 
-type SectionComponent = ComponentType<{ archive: ParsedArchive }>;
+type SectionComponent = ComponentType<{
+  archive: ParsedArchive;
+  onNavigate?: ((sectionId: string) => void) | undefined;
+}>;
 
 const SECTION_MAP: Record<
   string,
@@ -46,13 +49,21 @@ const SECTION_MAP: Record<
   contacts: lazy(() => import("@/components/sections/contacts")),
   "ghost-data": lazy(() => import("@/components/sections/ghost-data")),
   "shadow-profile": lazy(() => import("@/components/sections/shadow-profile")),
+  "top-findings": lazy(() => import("@/components/sections/top-findings")),
+  "security-audit": lazy(() => import("@/components/sections/security-audit")),
+  "privacy-erosion": lazy(
+    () => import("@/components/sections/privacy-erosion"),
+  ),
+  "grok-insights": lazy(() => import("@/components/sections/grok-insights")),
+  benchmarks: lazy(() => import("@/components/sections/benchmarks")),
 };
 
 interface ContentAreaProps {
   sectionId: string;
+  onNavigate?: ((sectionId: string) => void) | undefined;
 }
 
-export function ContentArea({ sectionId }: ContentAreaProps) {
+export function ContentArea({ sectionId, onNavigate }: ContentAreaProps) {
   const { state } = useArchive();
   const archive = state.status === "ready" ? state.archive : null;
 
@@ -80,7 +91,7 @@ export function ContentArea({ sectionId }: ContentAreaProps) {
               </div>
             }
           >
-            <Section archive={archive} />
+            <Section archive={archive} onNavigate={onNavigate} />
           </Suspense>
         </SectionErrorBoundary>
       ) : (

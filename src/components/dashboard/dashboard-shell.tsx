@@ -24,45 +24,45 @@ export function DashboardShell() {
     <div className="flex h-full flex-1 flex-col">
       <ParseWarningsBanner />
       <div className="flex h-full flex-1 flex-col lg:flex-row">
-      {/* Mobile top bar */}
-      <div className="flex items-center gap-3 border-b border-border bg-background-overlay px-4 py-3 lg:hidden">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="rounded-lg p-1.5 text-foreground-muted transition-colors hover:bg-background-raised hover:text-foreground"
-          aria-label="Open navigation"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        {/* Mobile top bar */}
+        <div className="flex items-center gap-3 border-b border-border bg-background-overlay px-4 py-3 lg:hidden">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="rounded-lg p-1.5 text-foreground-muted transition-colors hover:bg-background-raised hover:text-foreground"
+            aria-label="Open navigation"
           >
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-        <span className="text-lg font-bold tracking-tight text-foreground">
-          x<span className="text-accent">fold</span>
-        </span>
-        {username && (
-          <span className="truncate text-xs text-foreground-muted">
-            @{username}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <span className="text-lg font-bold tracking-tight text-foreground">
+            x<span className="text-accent">fold</span>
           </span>
-        )}
-      </div>
+          {username && (
+            <span className="truncate text-xs text-foreground-muted">
+              @{username}
+            </span>
+          )}
+        </div>
 
-      <Sidebar
-        activeSection={activeSection}
-        onNavigate={handleNavigate}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-      <ContentArea sectionId={activeSection} />
+        <Sidebar
+          activeSection={activeSection}
+          onNavigate={handleNavigate}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+        <ContentArea sectionId={activeSection} onNavigate={handleNavigate} />
       </div>
     </div>
   );

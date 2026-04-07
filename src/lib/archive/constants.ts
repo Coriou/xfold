@@ -20,6 +20,7 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "highlights",
     label: "Highlights",
     items: [
+      { id: "top-findings", label: "Top Findings" },
       { id: "algorithmic-mirror", label: "X Thinks You Are…" },
       {
         id: "ad-price-tag",
@@ -59,6 +60,14 @@ export const NAV_SECTIONS: NavSection[] = [
       { id: "grok", label: "Grok Conversations", dataKey: "grokConversations" },
       { id: "demographics", label: "Demographics", dataKey: "personalization" },
       { id: "off-twitter", label: "Off Twitter" },
+      { id: "security-audit", label: "Security Audit" },
+      { id: "privacy-erosion", label: "Privacy Erosion" },
+      {
+        id: "grok-insights",
+        label: "Grok Deep Dive",
+        dataKey: "grokConversations",
+      },
+      { id: "benchmarks", label: "How You Compare" },
     ],
   },
   {
@@ -94,4 +103,4 @@ export const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-export const DEFAULT_SECTION = "overview";
+export const DEFAULT_SECTION = "top-findings";

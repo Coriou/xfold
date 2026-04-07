@@ -19,8 +19,8 @@ import {
 } from "@/lib/archive/__fixtures/synthetic-archive";
 
 describe("SHARE_CARDS", () => {
-  it("contains all 28 expected cards", () => {
-    expect(SHARE_CARDS.length).toBe(28);
+  it("contains all 32 expected cards", () => {
+    expect(SHARE_CARDS.length).toBe(32);
   });
 
   it("has unique ids", () => {
