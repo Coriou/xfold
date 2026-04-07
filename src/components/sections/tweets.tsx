@@ -83,7 +83,7 @@ export default function Tweets({ archive }: { archive: ParsedArchive }) {
       {view === "analytics" ? (
         <AnalyticsView
           tweets={tweets}
-          accountId={archive.account?.accountId ?? archive.meta.accountId ?? null}
+          accountId={archive.account?.accountId ?? archive.meta.accountId}
         />
       ) : (
         <>

@@ -50,7 +50,7 @@ export function DataCardModal({
 
     return () => {
       document.body.style.overflow = prevOverflow;
-      previouslyFocused.current?.focus?.();
+      previouslyFocused.current?.focus();
     };
   }, [open]);
 
@@ -182,7 +182,9 @@ export function DataCardModal({
       >
         <button
           type="button"
-          onClick={handleDownload}
+          onClick={() => {
+            void handleDownload();
+          }}
           disabled={downloading}
           aria-busy={downloading}
           className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-background transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"

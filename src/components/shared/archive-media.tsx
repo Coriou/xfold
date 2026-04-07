@@ -39,7 +39,7 @@ export function ArchiveMedia({
 
     let cancelled = false;
 
-    getMedia(localPath).then((blob) => {
+    void getMedia(localPath).then((blob) => {
       if (cancelled) return;
       if (!blob) {
         stateRef.current = { status: "error" };

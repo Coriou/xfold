@@ -122,9 +122,11 @@ export function transformArchive(
 // ---------------------------------------------------------------------------
 
 function transformMeta(raw: Record<string, unknown>): ArchiveMeta {
-  const manifest = raw["__manifest"] as R | undefined;
+  // Cast widens `unknown` → `any` so dot-access to nested fields below
+  // works without bracket-access plumbing. See file header for context.
+  const manifest = raw["__manifest"] as R;
   const accountArr = arr(raw["account"]);
-  const acct = first(accountArr)?.account as R | undefined;
+  const acct = first(accountArr)?.account;
 
   return {
     generationDate: str(manifest?.archiveInfo?.generationDate),
@@ -169,17 +171,15 @@ function transformStats(
 }
 
 function transformAccount(raw: Record<string, unknown>): AccountInfo | null {
-  const acct = first(arr(raw["account"]))?.account as R | undefined;
+  const acct = first(arr(raw["account"]))?.account;
   if (!acct) return null;
 
-  const tz = first(arr(raw["account_timezone"]))?.accountTimezone as
-    | R
-    | undefined;
-  const phone = first(arr(raw["phone_number"]))?.device as R | undefined;
-  const verified = first(arr(raw["verified"]))?.verified as R | undefined;
-  const age = first(arr(raw["ageinfo"]))?.ageMeta?.ageInfo as R | undefined;
+  const tz = first(arr(raw["account_timezone"]))?.accountTimezone;
+  const phone = first(arr(raw["phone_number"]))?.device;
+  const verified = first(arr(raw["verified"]))?.verified;
+  const age = first(arr(raw["ageinfo"]))?.ageMeta?.ageInfo;
   const creationIp = first(arr(raw["account_creation_ip"]))
-    ?.accountCreationIp as R | undefined;
+    ?.accountCreationIp;
 
   return {
     accountId: str(acct.accountId),
@@ -200,7 +200,7 @@ function transformAccount(raw: Record<string, unknown>): AccountInfo | null {
 }
 
 function transformProfile(data: any[]): ProfileInfo | null {
-  const p = first(data)?.profile as R | undefined;
+  const p = first(data)?.profile;
   if (!p) return null;
 
   return {
@@ -260,7 +260,7 @@ function transformTweetMedia(m: R, parentTweetId: string): TweetMedia {
   return {
     id: str(m.id_str ?? m.id),
     url: mediaUrl,
-    type: (m.type as TweetMedia["type"]) ?? "photo",
+    type: m.type || "photo",
     width: num(m.sizes?.large?.w ?? m.sizes?.medium?.w),
     height: num(m.sizes?.large?.h ?? m.sizes?.medium?.h),
     localPath: basename ? `data/tweets_media/${parentTweetId}-${basename}` : null,
@@ -507,8 +507,12 @@ function groupGrokConversations(data: any[]): GrokConversation[] {
       postIds: arr(item.postIds).map(String),
     };
 
-    if (!byChat.has(chatId)) byChat.set(chatId, []);
-    byChat.get(chatId)!.push(msg);
+    let messages = byChat.get(chatId);
+    if (!messages) {
+      messages = [];
+      byChat.set(chatId, messages);
+    }
+    messages.push(msg);
   }
 
   return Array.from(byChat.entries()).map(([chatId, messages]) => ({

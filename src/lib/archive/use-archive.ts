@@ -50,7 +50,7 @@ export function useArchiveWorker() {
 
   // Restore from IndexedDB on mount
   useEffect(() => {
-    idbLoad().then((cached) => {
+    void idbLoad().then((cached) => {
       if (cached) {
         setState((prev) =>
           prev.status === "idle" ? { status: "ready", archive: cached } : prev,
@@ -82,7 +82,7 @@ export function useArchiveWorker() {
             failedFiles:
               msg.failedFiles.length > 0 ? msg.failedFiles : undefined,
           });
-          idbSave(msg.archive);
+          void idbSave(msg.archive);
           break;
 
         case "PARSE_ERROR":
@@ -189,7 +189,7 @@ export function useArchiveWorker() {
     workerRef.current?.terminate();
     workerRef.current = null;
     mediaCallbacks.current.clear();
-    idbClear();
+    void idbClear();
     setState({ status: "idle" });
   }, []);
 

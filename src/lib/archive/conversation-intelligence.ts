@@ -63,7 +63,7 @@ function getAccum(map: Map<string, Accum>, id: string): Accum {
 // --- Main -------------------------------------------------------------------
 
 export function buildContactMap(archive: ParsedArchive): Contact[] {
-  const selfId = archive.account?.accountId ?? archive.meta.accountId ?? "";
+  const selfId = archive.account?.accountId ?? archive.meta.accountId;
 
   // Social graph sets
   const followerIds = new Set(archive.followers.map((f) => f.accountId));

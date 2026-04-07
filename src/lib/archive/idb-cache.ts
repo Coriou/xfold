@@ -87,7 +87,6 @@ export async function loadArchive(): Promise<ParsedArchive | null> {
     );
     db.close();
     if (!entry || entry.version !== CACHE_VERSION) return null;
-    if (!entry.compressed) return null;
 
     const decompressed = gunzipSync(entry.compressed);
     const json = strFromU8(decompressed);
@@ -118,8 +117,8 @@ export async function getCacheMetadata(): Promise<CacheMetadata | null> {
     return {
       savedAt: entry.savedAt,
       version: entry.version,
-      uncompressedSize: entry.uncompressedSize ?? 0,
-      compressedSize: entry.compressed?.byteLength ?? 0,
+      uncompressedSize: entry.uncompressedSize,
+      compressedSize: entry.compressed.byteLength,
     };
   } catch {
     return null;
