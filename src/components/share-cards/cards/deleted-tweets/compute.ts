@@ -1,3 +1,4 @@
+import { computeBenchmarks } from "@/lib/archive/insights/benchmarks";
 import type { ComputeContext, ShareabilityScore } from "../../types";
 
 export interface DeletedTweetsCardProps {
@@ -6,6 +7,8 @@ export interface DeletedTweetsCardProps {
   readonly activeCount: number;
   readonly percentOfTotal: number;
   readonly oldestDeletedDate: string | null;
+  /** e.g. "6.2× more than a typical user" — null if within normal range. */
+  readonly benchmarkLine: string | null;
 }
 
 export function computeDeletedTweets(
@@ -26,12 +29,21 @@ export function computeDeletedTweets(
     }
   }
 
+  // Benchmark comparison
+  const benchmarks = computeBenchmarks(ctx.archive);
+  const deletedBench = benchmarks.find((b) => b.id === "deleted-tweets");
+  const benchmarkLine =
+    deletedBench?.multiplier && deletedBench.multiplier > 1.5
+      ? `${deletedBench.multiplier.toFixed(1)}\u00d7 more than a typical user`
+      : null;
+
   return {
     username: ctx.archive.meta.username,
     deletedCount: deleted.length,
     activeCount: active,
     percentOfTotal: percent,
     oldestDeletedDate: oldest,
+    benchmarkLine,
   };
 }
 

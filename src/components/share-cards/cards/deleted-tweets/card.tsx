@@ -36,7 +36,7 @@ export function DeletedTweetsCard(props: DeletedTweetsCardProps) {
             padding: "0 24px",
           }}
         >
-          tweets you deleted — that X still kept
+          times you hit delete. X hit &ldquo;save&rdquo; every time.
         </div>
         <div
           style={{
@@ -48,8 +48,8 @@ export function DeletedTweetsCard(props: DeletedTweetsCardProps) {
             lineHeight: 1.5,
           }}
         >
-          {props.percentOfTotal}% of all tweets you ever wrote are ones you
-          thought were gone.
+          {props.percentOfTotal}% of your tweets only disappeared on your
+          screen.
         </div>
         {props.oldestDeletedDate && (
           <div
@@ -61,6 +61,20 @@ export function DeletedTweetsCard(props: DeletedTweetsCardProps) {
             }}
           >
             The oldest dates back to {formatDate(props.oldestDeletedDate)}.
+          </div>
+        )}
+        {props.benchmarkLine && (
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: brand.danger,
+              marginTop: 16,
+              textAlign: "center",
+              fontFamily: "monospace",
+            }}
+          >
+            {props.benchmarkLine}
           </div>
         )}
       </div>

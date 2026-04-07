@@ -51,7 +51,10 @@ export type ShareCardId =
   | "erosion"
   | "benchmark"
   | "data-fate"
-  | "confession";
+  | "confession"
+  | "compare-cta"
+  | "x-vs-reality"
+  | "day-in-the-life";
 
 export type ShareCardCategory =
   | "headline"

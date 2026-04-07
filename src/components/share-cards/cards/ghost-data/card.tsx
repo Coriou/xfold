@@ -77,8 +77,7 @@ export function GhostDataCard(props: GhostDataCardProps) {
             padding: "0 32px",
           }}
         >
-          X built a viewer for your data — then left out the parts that matter
-          most.
+          X gave you a data viewer. They just hid the data worth viewing.
         </div>
       </div>
 

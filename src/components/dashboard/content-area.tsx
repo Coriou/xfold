@@ -58,6 +58,16 @@ const SECTION_MAP: Record<
   benchmarks: lazy(() => import("@/components/sections/benchmarks")),
   "data-fate": lazy(() => import("@/components/sections/data-fate")),
   "the-receipts": lazy(() => import("@/components/sections/the-receipts")),
+  "x-vs-reality": lazy(() => import("@/components/sections/x-vs-reality")),
+  "day-in-the-life": lazy(
+    () => import("@/components/sections/day-in-the-life"),
+  ),
+  "cross-references": lazy(
+    () => import("@/components/sections/cross-references"),
+  ),
+  "search-surveillance": lazy(
+    () => import("@/components/sections/search-surveillance"),
+  ),
 };
 
 interface ContentAreaProps {

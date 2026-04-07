@@ -43,11 +43,16 @@ import { erosionCard } from "./cards/erosion";
 import { benchmarkCard } from "./cards/benchmark";
 import { dataFateCard } from "./cards/data-fate";
 import { confessionCard } from "./cards/confession";
+import { compareCTACard } from "./cards/compare-cta";
+import { xVsRealityCard } from "./cards/x-vs-reality-card";
+import { dayInTheLifeCard } from "./cards/day-in-the-life-card";
 
 export const SHARE_CARDS: readonly RegisteredShareCard[] = [
   defineShareCard(confessionCard),
   defineShareCard(dataFateCard),
   defineShareCard(topFindingCard),
+  defineShareCard(xVsRealityCard),
+  defineShareCard(dayInTheLifeCard),
   defineShareCard(plainEnglishCard),
   defineShareCard(betrayalStackCard),
   defineShareCard(accuracyAuditCard),
@@ -78,5 +83,6 @@ export const SHARE_CARDS: readonly RegisteredShareCard[] = [
   defineShareCard(erosionCard),
   defineShareCard(benchmarkCard),
   defineShareCard(reportCardCard),
+  defineShareCard(compareCTACard),
   defineShareCard(scoreCard),
 ];

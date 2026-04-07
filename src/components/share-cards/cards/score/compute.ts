@@ -6,6 +6,7 @@ import {
 import { buildInterestPipeline } from "@/lib/archive/insights/interest-pipeline";
 import { buildZombieInterests } from "@/lib/archive/insights/zombie-interests";
 import { buildDataBrokerPipeline } from "@/lib/archive/insights/data-broker-pipeline";
+import { computeBenchmarks } from "@/lib/archive/insights/benchmarks";
 import type { ComputeContext } from "../../types";
 
 export interface ScoreCardReceipt {
@@ -56,6 +57,16 @@ function buildReceipts(ctx: ComputeContext): ScoreCardReceipt[] {
   const { archive } = ctx;
   const receipts: ScoreCardReceipt[] = [];
 
+  // Precompute benchmarks for inline comparison text
+  const benchmarks = computeBenchmarks(archive);
+  const bench = (id: string) => benchmarks.find((b) => b.id === id);
+  const multiplierTag = (id: string) => {
+    const b = bench(id);
+    return b?.multiplier && b.multiplier > 1.5
+      ? ` (${b.multiplier.toFixed(1)}\u00d7 typical)`
+      : "";
+  };
+
   // Receipt 1: Tracking — unique IPs and networks
   const uniqueIps = new Set(archive.ipAudit.map((e) => e.loginIp)).size;
   const subnets = new Set(
@@ -69,7 +80,7 @@ function buildReceipts(ctx: ComputeContext): ScoreCardReceipt[] {
   if (uniqueIps > 0) {
     receipts.push({
       icon: "\uD83D\uDCCD",
-      text: `Logged in from ${uniqueIps} IPs across ${subnets} networks`,
+      text: `Logged in from ${uniqueIps} IPs across ${subnets} networks${multiplierTag("login-ips")}`,
       severity: uniqueIps > 20 ? "high" : uniqueIps > 5 ? "medium" : "low",
     });
   }
@@ -113,7 +124,7 @@ function buildReceipts(ctx: ComputeContext): ScoreCardReceipt[] {
   if (advCount > 0) {
     receipts.push({
       icon: "\uD83D\uDCB0",
-      text: `${advCount.toLocaleString("en-US")} advertisers targeted you, $0 paid to you`,
+      text: `${advCount.toLocaleString("en-US")} advertisers targeted you${multiplierTag("advertisers")}, $0 paid to you`,
       severity: advCount > 200 ? "high" : advCount > 50 ? "medium" : "low",
     });
   }
@@ -132,7 +143,7 @@ function buildReceipts(ctx: ComputeContext): ScoreCardReceipt[] {
   if (archive.deletedTweets.length > 0) {
     receipts.push({
       icon: "\uD83D\uDDD1\uFE0F",
-      text: `${archive.deletedTweets.length} "deleted" tweets still in X's possession`,
+      text: `${archive.deletedTweets.length} "deleted" tweets still in X\u2019s possession${multiplierTag("deleted-tweets")}`,
       severity: archive.deletedTweets.length > 100 ? "high" : "medium",
     });
   }

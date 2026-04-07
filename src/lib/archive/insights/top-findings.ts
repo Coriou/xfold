@@ -16,6 +16,8 @@
 
 import type { ParsedArchive } from "@/lib/archive/types";
 import { parseDate } from "@/lib/format";
+import { buildDmAdCorrelation } from "./dm-ad-correlation";
+import { buildGrokDeletedCorrelation } from "./grok-deleted-correlation";
 
 // --- Types ------------------------------------------------------------------
 
@@ -565,6 +567,63 @@ function findPrivacyErosion(archive: ParsedArchive): TopFinding | null {
   };
 }
 
+function findDmAdCorrelation(archive: ParsedArchive): TopFinding | null {
+  const correlation = buildDmAdCorrelation(archive);
+  if (!correlation || correlation.overlapCount < 3) return null;
+
+  const suspicious = correlation.matches.filter((m) => m.adFollowedDm).length;
+
+  const hook =
+    suspicious > 0
+      ? `${fmt(correlation.overlapCount)} topics from your private DMs also appear in your ad targeting — ${fmt(suspicious)} times the ad appeared AFTER your conversation.`
+      : `${fmt(correlation.overlapCount)} topics you discussed in DMs also appear in your ad targeting profile.`;
+
+  return {
+    id: "dm-ad-correlation",
+    hook,
+    detail: `X says DMs are private. Yet ${fmt(correlation.overlapCount)} keywords from your private messages match ad targeting criteria used against you.`,
+    severity: suspicious > 3 ? "critical" : suspicious > 0 ? "high" : "medium",
+    shockScore: Math.min(
+      92,
+      45 + correlation.overlapCount * 3 + suspicious * 8,
+    ),
+    sectionId: "cross-references",
+    category: "Cross-domain tracking",
+    action: null,
+  };
+}
+
+function findGrokDeletedConnection(archive: ParsedArchive): TopFinding | null {
+  const correlation = buildGrokDeletedCorrelation(archive);
+  if (!correlation || correlation.overlapCount < 2) return null;
+
+  const afterDeletion = correlation.matches.filter(
+    (m) => m.grokAfterDeletion,
+  ).length;
+
+  const hook =
+    afterDeletion > 0
+      ? `You asked Grok about ${fmt(afterDeletion)} topics you also deleted tweets about. X has the deleted content AND proof you were worried about it.`
+      : `${fmt(correlation.overlapCount)} topics overlap between your Grok conversations and deleted tweets. X keeps both.`;
+
+  return {
+    id: "grok-deleted-overlap",
+    hook,
+    detail:
+      afterDeletion > 0
+        ? `In ${fmt(afterDeletion)} cases, you asked Grok AFTER deleting tweets on the same topic — a digital paper trail of what you tried to hide.`
+        : `Cross-referencing Grok conversations with deleted tweets reveals overlapping topics X stores alongside your real identity.`,
+    severity: afterDeletion > 2 ? "critical" : "high",
+    shockScore: Math.min(
+      90,
+      50 + correlation.overlapCount * 5 + afterDeletion * 10,
+    ),
+    sectionId: "cross-references",
+    category: "AI + Privacy",
+    action: null,
+  };
+}
+
 // --- Main -------------------------------------------------------------------
 
 export function computeTopFindings(archive: ParsedArchive): TopFinding[] {
@@ -581,6 +640,8 @@ export function computeTopFindings(archive: ParsedArchive): TopFinding[] {
     findConnectedAppRisk,
     findBulkDeletionPattern,
     findPrivacyErosion,
+    findDmAdCorrelation,
+    findGrokDeletedConnection,
   ];
 
   const findings: TopFinding[] = [];
