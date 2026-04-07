@@ -8,8 +8,12 @@ const DB_VERSION = 1;
 /**
  * Bump this any time the ParsedArchive shape changes in a backwards-
  * incompatible way. Older cached archives are silently discarded.
+ *
+ * v3 added the required `offTwitter` field on ParsedArchive plus three new
+ * fields on Personalization (partnerInterests, doNotReachAdvertisers, typed
+ * locationHistory).
  */
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {

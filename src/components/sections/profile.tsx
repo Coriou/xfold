@@ -9,9 +9,40 @@ import { safeHref } from "@/lib/safe-href";
 export default function Profile({ archive }: { archive: ParsedArchive }) {
   const { account, profile } = archive;
 
+  // Sort handle changes chronologically once for the hero strip.
+  const handleChanges = [...archive.screenNameChanges].sort((a, b) =>
+    a.changedAt.localeCompare(b.changedAt),
+  );
+
   return (
     <div>
       <SectionHeader title="Your Profile" description="Account and profile information from your archive." />
+
+      {/* Identity timeline hero — only renders when there's at least one change */}
+      {handleChanges.length > 0 && account && (
+        <div className="mb-4 rounded-xl border border-border bg-background-raised p-5">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground-muted">
+            Identity Timeline
+          </h3>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {/* Earliest known handle is the "from" of the first change */}
+            <PillBadge variant="muted">
+              @{handleChanges[0]?.changedFrom}
+            </PillBadge>
+            {handleChanges.map((c, i) => (
+              <span key={i} className="flex items-center gap-2">
+                <span className="text-foreground-muted">→</span>
+                <PillBadge variant={i === handleChanges.length - 1 ? "accent" : "muted"}>
+                  @{c.changedTo}
+                </PillBadge>
+                <span className="text-xs text-foreground-muted">
+                  {formatDate(c.changedAt)}
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Profile card */}

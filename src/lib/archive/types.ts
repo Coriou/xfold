@@ -37,6 +37,8 @@ export interface ParsedArchive {
   screenNameChanges: ScreenNameChange[];
   lists: ListInfo[];
 
+  offTwitter: OffTwitterTracking;
+
   /** All parsed data keyed by YTD name, for sections that need raw access */
   raw: Record<string, unknown[]>;
 }
@@ -211,14 +213,18 @@ export interface TargetingCriterion {
 
 export interface Personalization {
   interests: PersonalizationInterest[];
+  /** Interests purchased from third-party data brokers, distinct from X's own inferences. */
+  partnerInterests: string[];
   shows: string[];
   languages: PersonalizationLanguage[];
   gender: string | null;
   inferredAge: string | null;
   lookalikeAdvertisers: string[];
   advertisers: string[];
+  /** Advertisers paying *not* to reach this account (negative-audience targeting). */
+  doNotReachAdvertisers: string[];
   numAudiences: number;
-  locationHistory: unknown[];
+  locationHistory: LocationHistoryEntry[];
 }
 
 export interface PersonalizationInterest {
@@ -229,6 +235,18 @@ export interface PersonalizationInterest {
 export interface PersonalizationLanguage {
   language: string;
   isDisabled: boolean;
+}
+
+/**
+ * X infers location from the last 60 days of activity. The README doesn't fully
+ * document the entry shape, so all fields are nullable — we extract whatever is
+ * present per entry.
+ */
+export interface LocationHistoryEntry {
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  capturedAt: string | null;
 }
 
 // --- Privacy / security ---------------------------------------------------
@@ -306,4 +324,64 @@ export interface ScreenNameChange {
 export interface ListInfo {
   url: string;
   type: "created" | "member" | "subscribed";
+}
+
+// --- Off-Twitter tracking -------------------------------------------------
+//
+// X ships these files in the archive but doesn't surface them in the official
+// HTML viewer. They contain off-platform tracking data (apps you installed,
+// websites you visited) that advertisers reported back to X via conversion
+// pixels and SDKs.
+
+export interface OffTwitterTracking {
+  mobileConversionsAttributed: MobileConversionEvent[];
+  mobileConversionsUnattributed: MobileConversionEvent[];
+  onlineConversionsAttributed: OnlineConversionEvent[];
+  onlineConversionsUnattributed: OnlineConversionEvent[];
+  branchLinks: BranchLinkEvent[];
+  inferredApps: InferredApp[];
+}
+
+export interface MobileConversionEvent {
+  /** True for events attributed to a promoted-tweet engagement on X. */
+  attributed: boolean;
+  /** Type of activity (e.g. "Install"). Attributed events only. */
+  conversionType: string | null;
+  /** "iOS" / "Android" / other. */
+  mobilePlatform: string;
+  /** Event name (e.g. "install", "signup"). */
+  conversionEventName: string;
+  applicationName: string;
+  conversionValue: string | null;
+  conversionTime: string;
+}
+
+export interface OnlineConversionEvent {
+  attributed: boolean;
+  conversionType: string | null;
+  eventType: string;
+  conversionPlatform: string;
+  /** URL of the website where the event occurred. Unattributed events only. */
+  conversionUrl: string | null;
+  advertiserName: string | null;
+  conversionValue: string | null;
+  conversionTime: string;
+}
+
+export interface BranchLinkEvent {
+  timestamp: string;
+  landingPage: string;
+  externalReferrerUrl: string;
+  channel: string;
+  feature: string;
+  campaign: string;
+}
+
+/**
+ * X's guess at apps installed on your devices. The README only documents
+ * `appId` and `appNames` — the latter being a list of name variants.
+ */
+export interface InferredApp {
+  appId: string;
+  appNames: string[];
 }

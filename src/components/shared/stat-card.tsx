@@ -11,9 +11,9 @@ const VARIANTS = {
 interface StatCardProps {
   label: string;
   value: string | number;
-  subtitle?: string;
-  variant?: keyof typeof VARIANTS;
-  icon?: ReactNode;
+  subtitle?: string | undefined;
+  variant?: keyof typeof VARIANTS | undefined;
+  icon?: ReactNode | undefined;
 }
 
 export function StatCard({

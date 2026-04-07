@@ -6,7 +6,7 @@ import { computePrivacyScore } from "@/lib/privacy-score";
 import { SectionHeader } from "@/components/shared/section-header";
 import { ScoreRing } from "@/components/shared/score-ring";
 import { ScoreCategoryCard } from "@/components/shared/score-category-card";
-import { DataCardModal } from "@/components/shared/data-card-modal";
+import { ShareGallery } from "@/components/share-cards/share-gallery";
 import { formatAccountAge, parseDate, formatDate, pluralize } from "@/lib/format";
 import { chartColors } from "@/lib/brand";
 
@@ -232,7 +232,7 @@ export default function Overview({
         </div>
       )}
 
-      <DataCardModal
+      <ShareGallery
         open={cardOpen}
         onClose={() => setCardOpen(false)}
         archive={archive}

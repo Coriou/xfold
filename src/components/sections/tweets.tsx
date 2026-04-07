@@ -14,8 +14,12 @@ import { formatDate, truncate, pluralize, formatNumber, parseDate, toMonthKey } 
 import { getLanguageName } from "@/lib/language-names";
 import { StackedBarTimeline, type TimelineBucket } from "@/components/shared/stacked-bar-timeline";
 import { chartColors } from "@/lib/brand";
+import {
+  buildTweetClientJourney,
+  type ClientJourneyEntry,
+} from "@/lib/archive/insights/tweet-client-journey";
 
-type View = "timeline" | "table" | "analytics";
+type View = "timeline" | "table" | "analytics" | "clients";
 const PAGE_SIZE = 50;
 
 export default function Tweets({ archive }: { archive: ParsedArchive }) {
@@ -65,7 +69,7 @@ export default function Tweets({ archive }: { archive: ParsedArchive }) {
 
       {/* View toggle */}
       <div className="mb-4 flex items-center gap-2">
-        {(["timeline", "table", "analytics"] as const).map((v) => (
+        {(["timeline", "table", "analytics", "clients"] as const).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
@@ -85,6 +89,8 @@ export default function Tweets({ archive }: { archive: ParsedArchive }) {
           tweets={tweets}
           accountId={archive.account?.accountId ?? archive.meta.accountId}
         />
+      ) : view === "clients" ? (
+        <ClientsView archive={archive} />
       ) : (
         <>
           <div className="mb-4 max-w-sm">
@@ -566,6 +572,90 @@ function AnalyticsView({
             buckets={analytics.monthlyBuckets}
             sourceColors={{ Tweets: chartColors.Tweets }}
           />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ClientsView({ archive }: { archive: ParsedArchive }) {
+  const journey = useMemo(
+    () => buildTweetClientJourney(archive),
+    [archive],
+  );
+
+  if (journey.length === 0) {
+    return (
+      <p className="py-8 text-center text-sm text-foreground-muted">
+        No tweet client data found.
+      </p>
+    );
+  }
+
+  const total = journey.reduce((sum, e) => sum + e.count, 0);
+  const thirdPartyCount = journey.filter((e) => e.isThirdParty).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <StatCard label="Distinct clients" value={journey.length} />
+        <StatCard
+          label="Third-party clients"
+          value={thirdPartyCount}
+          variant={thirdPartyCount > 0 ? "danger" : "default"}
+        />
+        <StatCard label="Total tweets" value={total} />
+      </div>
+
+      <div className="rounded-xl border border-border bg-background-raised p-5">
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground-muted">
+          Tweet Client Journey
+        </h3>
+        <p className="mb-4 text-xs text-foreground-muted">
+          Every app you&apos;ve tweeted from. Third-party clients are
+          highlighted &mdash; some may be apps you&apos;ve forgotten you
+          authorized.
+        </p>
+        <div className="space-y-2">
+          {journey.map((entry) => (
+            <ClientRow key={entry.client} entry={entry} total={total} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClientRow({
+  entry,
+  total,
+}: {
+  entry: ClientJourneyEntry;
+  total: number;
+}) {
+  const pct = total > 0 ? (entry.count / total) * 100 : 0;
+  return (
+    <div className="rounded-lg border border-border bg-background p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm font-medium text-foreground">
+            {entry.client}
+          </span>
+          {entry.isThirdParty && (
+            <PillBadge variant="danger">third-party</PillBadge>
+          )}
+        </div>
+        <div className="flex items-center gap-3 font-mono text-xs">
+          <span className="text-foreground">{formatNumber(entry.count)}</span>
+          <span className="w-10 text-right text-foreground-muted">
+            {pct.toFixed(1)}%
+          </span>
+        </div>
+      </div>
+      {(entry.firstSeen || entry.lastSeen) && (
+        <div className="mt-1.5 flex items-center gap-3 text-[11px] text-foreground-muted">
+          {entry.firstSeen && <span>First: {formatDate(entry.firstSeen)}</span>}
+          {entry.lastSeen && <span>Last: {formatDate(entry.lastSeen)}</span>}
         </div>
       )}
     </div>

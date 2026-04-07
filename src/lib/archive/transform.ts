@@ -23,6 +23,7 @@ import type {
   AdImpressionBatch,
   AdImpression,
   TargetingCriterion,
+  LocationHistoryEntry,
   Personalization,
   PersonalizationInterest,
   PersonalizationLanguage,
@@ -36,6 +37,10 @@ import type {
   GrokAttachment,
   ScreenNameChange,
   ListInfo,
+  BranchLinkEvent,
+  InferredApp,
+  MobileConversionEvent,
+  OnlineConversionEvent,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -113,6 +118,22 @@ export function transformArchive(
       ...r("lists_member").map(transformList("member")),
       ...r("lists_subscribed").map(transformList("subscribed")),
     ],
+    offTwitter: {
+      mobileConversionsAttributed: r("ad_mobile_conversions_attributed").map(
+        transformMobileConversion(true),
+      ),
+      mobileConversionsUnattributed: r("ad_mobile_conversions_unattributed").map(
+        transformMobileConversion(false),
+      ),
+      onlineConversionsAttributed: r("ad_online_conversions_attributed").map(
+        transformOnlineConversion(true),
+      ),
+      onlineConversionsUnattributed: r("ad_online_conversions_unattributed").map(
+        transformOnlineConversion(false),
+      ),
+      branchLinks: r("branch_links").map(transformBranchLink),
+      inferredApps: r("app").map(transformInferredApp),
+    },
     raw: raw as Record<string, unknown[]>,
   };
 }
@@ -396,6 +417,11 @@ function transformPersonalization(data: any[]): Personalization | null {
         isDisabled: !!i.isDisabled,
       }),
     ),
+    // partnerInterests entries can be either { name } objects or bare strings,
+    // depending on archive version. Coerce both shapes.
+    partnerInterests: arr(p.interests?.partnerInterests)
+      .map((i: R): string => (typeof i === "string" ? i : str(i?.name)))
+      .filter((s: string) => s.length > 0),
     shows: arr(p.interests?.shows).map(String),
     languages: arr(p.demographics?.languages).map(
       (l: R): PersonalizationLanguage => ({
@@ -407,8 +433,29 @@ function transformPersonalization(data: any[]): Personalization | null {
     inferredAge: p.inferredAgeInfo?.age?.[0] ?? null,
     lookalikeAdvertisers: arr(aud?.lookalikeAdvertisers).map(String),
     advertisers: arr(aud?.advertisers).map(String),
+    doNotReachAdvertisers: arr(aud?.doNotReachAdvertisers).map(String),
     numAudiences: num(aud?.numAudiences),
-    locationHistory: arr(p.locationHistory),
+    // The README doesn't fully document locationHistory's entry shape; extract
+    // whatever is present per entry. Falls back to all-null entries if the shape
+    // is alien.
+    locationHistory: arr(p.locationHistory).map(
+      (h: R): LocationHistoryEntry => ({
+        country: typeof h?.country === "string" ? h.country : null,
+        region:
+          typeof h?.region === "string"
+            ? h.region
+            : typeof h?.regionName === "string"
+              ? h.regionName
+              : null,
+        city: typeof h?.city === "string" ? h.city : null,
+        capturedAt:
+          typeof h?.createdAt === "string"
+            ? h.createdAt
+            : typeof h?.timestamp === "string"
+              ? h.timestamp
+              : null,
+      }),
+    ),
   };
 }
 
@@ -539,5 +586,80 @@ function transformList(
     url: str(entry.userListInfo?.url ?? entry.url),
     type,
   });
+}
+
+// --- Off-Twitter tracking transformers --------------------------------------
+//
+// The README documents the *fields* in each file but not the precise wrapper
+// shape of each entry. These parsers extract from `entry.ad ?? entry` (or the
+// equivalent for branchLink/app) so they tolerate either:
+//   [{ ad: { ...fields } }, ...]
+// or:
+//   [{ ...fields }, ...]
+// without crashing. Empty in / empty out either way.
+
+function transformMobileConversion(
+  attributed: boolean,
+): (entry: R) => MobileConversionEvent {
+  return (entry: R) => {
+    const a = entry.ad ?? entry;
+    return {
+      attributed,
+      conversionType: attributed
+        ? a.attributedConversionType
+          ? str(a.attributedConversionType)
+          : null
+        : null,
+      mobilePlatform: str(a.mobilePlatform),
+      conversionEventName: str(a.conversionEvent ?? a.conversionEventName),
+      applicationName: str(a.applicationName),
+      conversionValue: a.conversionValue ? String(a.conversionValue) : null,
+      conversionTime: str(a.conversionTime),
+    };
+  };
+}
+
+function transformOnlineConversion(
+  attributed: boolean,
+): (entry: R) => OnlineConversionEvent {
+  return (entry: R) => {
+    const a = entry.ad ?? entry;
+    return {
+      attributed,
+      conversionType: attributed
+        ? a.attributedConversionType
+          ? str(a.attributedConversionType)
+          : null
+        : null,
+      eventType: str(a.eventType),
+      conversionPlatform: str(a.conversionPlatform),
+      conversionUrl: a.conversionUrl ? str(a.conversionUrl) : null,
+      advertiserName: a.advertiserInfo?.advertiserName
+        ? str(a.advertiserInfo.advertiserName)
+        : null,
+      conversionValue: a.conversionValue ? String(a.conversionValue) : null,
+      conversionTime: str(a.conversionTime),
+    };
+  };
+}
+
+function transformBranchLink(entry: R): BranchLinkEvent {
+  const b = entry.branchLink ?? entry;
+  return {
+    timestamp: str(b.timestamp),
+    landingPage: str(b.landingPage),
+    externalReferrerUrl: str(b.externalReferrerUrl),
+    channel: str(b.channel),
+    feature: str(b.feature),
+    campaign: str(b.campaign),
+  };
+}
+
+function transformInferredApp(entry: R): InferredApp {
+  const a = entry.app ?? entry;
+  return {
+    appId: str(a.appId),
+    appNames: arr(a.appNames).map(String),
+  };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

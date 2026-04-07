@@ -9,6 +9,7 @@ import SectionErrorBoundary from "./section-error-boundary";
 type SectionComponent = ComponentType<{ archive: ParsedArchive }>;
 
 const SECTION_MAP: Record<string, React.LazyExoticComponent<SectionComponent>> = {
+  wrapped: lazy(() => import("@/components/sections/wrapped")),
   overview: lazy(() => import("@/components/sections/overview")),
   "activity-patterns": lazy(() => import("@/components/sections/activity-patterns")),
   interests: lazy(() => import("@/components/sections/interests")),
@@ -20,6 +21,7 @@ const SECTION_MAP: Record<string, React.LazyExoticComponent<SectionComponent>> =
   "connected-apps": lazy(() => import("@/components/sections/connected-apps")),
   grok: lazy(() => import("@/components/sections/grok-conversations")),
   demographics: lazy(() => import("@/components/sections/demographics")),
+  "off-twitter": lazy(() => import("@/components/sections/off-twitter")),
   tweets: lazy(() => import("@/components/sections/tweets")),
   likes: lazy(() => import("@/components/sections/likes")),
   dms: lazy(() => import("@/components/sections/dms")),

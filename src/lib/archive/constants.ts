@@ -17,6 +17,13 @@ export interface NavSection {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
+    id: "highlights",
+    label: "Highlights",
+    items: [
+      { id: "wrapped", label: "Your X, Wrapped", dataKey: "tweets" },
+    ],
+  },
+  {
     id: "privacy",
     label: "Privacy Audit",
     items: [
@@ -31,6 +38,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { id: "connected-apps", label: "Connected Apps", dataKey: "connectedApps" },
       { id: "grok", label: "Grok Conversations", dataKey: "grokConversations" },
       { id: "demographics", label: "Demographics", dataKey: "personalization" },
+      { id: "off-twitter", label: "Off Twitter" },
     ],
   },
   {

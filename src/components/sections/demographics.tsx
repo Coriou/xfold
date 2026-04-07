@@ -3,7 +3,7 @@
 import type { ParsedArchive } from "@/lib/archive/types";
 import { SectionHeader } from "@/components/shared/section-header";
 import { PillBadge } from "@/components/shared/pill-badge";
-import { formatNumber } from "@/lib/format";
+import { formatDate, formatNumber } from "@/lib/format";
 
 export default function Demographics({
   archive,
@@ -112,6 +112,86 @@ export default function Demographics({
                 {name}
               </PillBadge>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Partner interests — purchased from third parties */}
+      {p.partnerInterests.length > 0 && (
+        <div className="mt-4 rounded-xl border border-border bg-background-raised p-5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-foreground-muted">
+            Partner Interests
+          </p>
+          <p className="mt-1 text-xs text-foreground-muted">
+            Interests purchased from third-party data brokers, distinct from
+            X&apos;s own inferences. There are{" "}
+            <span className="font-mono font-semibold text-foreground">
+              {formatNumber(p.partnerInterests.length)}
+            </span>
+            .
+          </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {p.partnerInterests.map((name, i) => (
+              <PillBadge key={i} variant="muted">
+                {name}
+              </PillBadge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Do-not-reach advertisers — negative-audience targeting */}
+      {p.doNotReachAdvertisers.length > 0 && (
+        <div className="mt-4 rounded-xl border border-border bg-background-raised p-5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-foreground-muted">
+            Advertisers Paying NOT to Reach You
+          </p>
+          <p className="mt-1 text-xs text-foreground-muted">
+            These brands explicitly paid X to <em>exclude</em> you from their
+            campaigns &mdash; an inverse form of targeting.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {p.doNotReachAdvertisers.map((name, i) => (
+              <PillBadge key={i} variant="muted">
+                {name}
+              </PillBadge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Location history — inferred from activity */}
+      {p.locationHistory.length > 0 && (
+        <div className="mt-4 rounded-xl border border-border bg-background-raised p-5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-foreground-muted">
+            Inferred Location History
+          </p>
+          <p className="mt-1 text-xs text-foreground-muted">
+            X infers your location from the last 60 days of activity (not GPS).
+          </p>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs font-semibold uppercase tracking-wider text-foreground-muted">
+                <tr>
+                  <th className="pb-2 pr-4">Captured</th>
+                  <th className="pb-2 pr-4">City</th>
+                  <th className="pb-2 pr-4">Region</th>
+                  <th className="pb-2">Country</th>
+                </tr>
+              </thead>
+              <tbody>
+                {p.locationHistory.map((h, i) => (
+                  <tr key={i} className="border-t border-border">
+                    <td className="py-1.5 pr-4 font-mono text-xs text-foreground-muted">
+                      {h.capturedAt ? formatDate(h.capturedAt) : "—"}
+                    </td>
+                    <td className="py-1.5 pr-4">{h.city ?? "—"}</td>
+                    <td className="py-1.5 pr-4">{h.region ?? "—"}</td>
+                    <td className="py-1.5">{h.country ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
