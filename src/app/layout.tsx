@@ -76,7 +76,12 @@ export const metadata: Metadata = {
     description,
     creator: TWITTER_HANDLE,
     site: TWITTER_HANDLE,
-    images: ["/opengraph-image"],
+    images: [
+      {
+        url: "/twitter-image",
+        alt: "xfold dashboard preview — privacy score, advertisers paying for you, and deleted tweets X kept",
+      },
+    ],
   },
   alternates: {
     canonical: "/",

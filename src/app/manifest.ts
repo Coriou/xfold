@@ -3,10 +3,10 @@ import { brand } from "@/lib/brand";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "xfold",
+    name: "xfold — See what X knows about you",
     short_name: "xfold",
     description:
-      "See what X knows about you. 100% client-side, open source privacy explorer.",
+      "Upload your X/Twitter data archive and see everything they collected about you. 100% client-side, open source, no tracking. Your archive never leaves your browser.",
     start_url: "/",
     display: "standalone",
     background_color: brand.background,

@@ -1,25 +1,26 @@
 import { ImageResponse } from "next/og";
 import { brand } from "@/lib/brand";
 
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
+// ----------------------------------------------------------------------------
+// Twitter / X card image
+// ----------------------------------------------------------------------------
+//
+// Twitter's `summary_large_image` card crops to roughly 2:1, but the modern
+// X timeline preview also renders nicely at 1.91:1 (the OG default). We
+// keep this slightly more square than the OG image so the headline reads
+// well even when the bottom is cropped on smaller phone previews.
+//
+// Same product-preview composition as the OG image, scaled to a wider
+// canvas. Single source of truth lives in `opengraph-image.tsx` if you
+// need to redesign — keep them visually consistent.
+// ----------------------------------------------------------------------------
 
-// ----------------------------------------------------------------------------
-// Open Graph image
-// ----------------------------------------------------------------------------
-//
-// This is the image that previews when xfold.app is shared on X, LinkedIn,
-// iMessage, Slack, etc. It's a product-preview composite — mocked dashboard
-// cards arranged like a screenshot of the actual app — rather than just a
-// wordmark, because a wordmark can't sell what the tool actually does.
-//
-// next/og runs on Satori, which is flexbox-only and has no gap support on
-// non-flex containers. Every multi-child div needs `display: flex`.
-// ----------------------------------------------------------------------------
+export const size = { width: 1200, height: 600 };
+export const contentType = "image/png";
 
 const TILE_RADIUS = 18;
 
-export default function OgImage() {
+export default function TwitterImage() {
   return new ImageResponse(
     (
       <div
@@ -30,10 +31,9 @@ export default function OgImage() {
           flexDirection: "column",
           background: brand.background,
           fontFamily: "system-ui, sans-serif",
-          padding: "60px 70px",
+          padding: "56px 70px",
         }}
       >
-        {/* Top row: wordmark + tagline pill */}
         <div
           style={{
             display: "flex",
@@ -60,18 +60,17 @@ export default function OgImage() {
           </div>
         </div>
 
-        {/* Headline */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            marginTop: 36,
+            marginTop: 30,
           }}
         >
           <div
             style={{
               display: "flex",
-              fontSize: 64,
+              fontSize: 60,
               fontWeight: 800,
               color: brand.foreground,
               lineHeight: 1.05,
@@ -83,7 +82,7 @@ export default function OgImage() {
           <div
             style={{
               display: "flex",
-              fontSize: 64,
+              fontSize: 60,
               fontWeight: 800,
               color: brand.foreground,
               lineHeight: 1.05,
@@ -96,14 +95,12 @@ export default function OgImage() {
           </div>
         </div>
 
-        {/* Mocked dashboard cards */}
         <div
           style={{
             display: "flex",
-            marginTop: 42,
+            marginTop: 36,
           }}
         >
-          {/* Card 1 — privacy score ring */}
           <div
             style={{
               display: "flex",
@@ -112,13 +109,13 @@ export default function OgImage() {
               backgroundColor: brand.backgroundRaised,
               borderRadius: TILE_RADIUS,
               border: `1px solid ${brand.border}`,
-              padding: "24px 28px",
-              marginRight: 18,
+              padding: "22px 26px",
+              marginRight: 16,
             }}
           >
             <div
               style={{
-                fontSize: 16,
+                fontSize: 14,
                 color: brand.foregroundMuted,
                 textTransform: "uppercase",
                 letterSpacing: 1,
@@ -130,12 +127,12 @@ export default function OgImage() {
               style={{
                 display: "flex",
                 alignItems: "baseline",
-                marginTop: 10,
+                marginTop: 8,
               }}
             >
               <div
                 style={{
-                  fontSize: 72,
+                  fontSize: 64,
                   fontWeight: 800,
                   color: brand.danger,
                   fontFamily: "monospace",
@@ -146,7 +143,7 @@ export default function OgImage() {
               </div>
               <div
                 style={{
-                  fontSize: 26,
+                  fontSize: 22,
                   color: brand.foregroundMuted,
                   fontFamily: "monospace",
                   marginLeft: 6,
@@ -155,18 +152,8 @@ export default function OgImage() {
                 /100
               </div>
             </div>
-            <div
-              style={{
-                fontSize: 18,
-                color: brand.danger,
-                marginTop: 4,
-              }}
-            >
-              Heavily exposed
-            </div>
           </div>
 
-          {/* Card 2 — advertisers count */}
           <div
             style={{
               display: "flex",
@@ -175,44 +162,34 @@ export default function OgImage() {
               backgroundColor: brand.backgroundRaised,
               borderRadius: TILE_RADIUS,
               border: `1px solid ${brand.border}`,
-              padding: "24px 28px",
-              marginRight: 18,
+              padding: "22px 26px",
+              marginRight: 16,
             }}
           >
             <div
               style={{
-                fontSize: 16,
+                fontSize: 14,
                 color: brand.foregroundMuted,
                 textTransform: "uppercase",
                 letterSpacing: 1,
               }}
             >
-              Advertisers paying for you
+              Advertisers
             </div>
             <div
               style={{
-                fontSize: 72,
+                fontSize: 64,
                 fontWeight: 800,
                 color: brand.foreground,
                 fontFamily: "monospace",
-                marginTop: 10,
+                marginTop: 8,
                 lineHeight: 1,
               }}
             >
               1,247
             </div>
-            <div
-              style={{
-                fontSize: 18,
-                color: brand.foregroundMuted,
-                marginTop: 4,
-              }}
-            >
-              across 89 categories
-            </div>
           </div>
 
-          {/* Card 3 — deleted tweets */}
           <div
             style={{
               display: "flex",
@@ -221,12 +198,12 @@ export default function OgImage() {
               backgroundColor: brand.backgroundRaised,
               borderRadius: TILE_RADIUS,
               border: `1px solid ${brand.border}`,
-              padding: "24px 28px",
+              padding: "22px 26px",
             }}
           >
             <div
               style={{
-                fontSize: 16,
+                fontSize: 14,
                 color: brand.foregroundMuted,
                 textTransform: "uppercase",
                 letterSpacing: 1,
@@ -236,36 +213,26 @@ export default function OgImage() {
             </div>
             <div
               style={{
-                fontSize: 72,
+                fontSize: 64,
                 fontWeight: 800,
                 color: brand.foreground,
                 fontFamily: "monospace",
-                marginTop: 10,
+                marginTop: 8,
                 lineHeight: 1,
               }}
             >
               847
             </div>
-            <div
-              style={{
-                fontSize: 18,
-                color: brand.foregroundMuted,
-                marginTop: 4,
-              }}
-            >
-              full text, indefinitely
-            </div>
           </div>
         </div>
 
-        {/* Footer */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             marginTop: "auto",
-            paddingTop: 28,
+            paddingTop: 24,
             fontSize: 18,
             color: brand.foregroundMuted,
           }}

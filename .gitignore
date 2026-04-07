@@ -35,7 +35,10 @@ yarn-error.log*
 
 # twitter/x archive data — NEVER commit user data
 *.zip
-twitter-*
+# Anchored to repo root so it only catches downloaded archive folders
+# (e.g. /twitter-2026-04-02-...) and not source files like
+# src/app/twitter-image.tsx that legitimately start with "twitter-".
+/twitter-*
 data/
 *.js.bak
 # block common archive extraction patterns
