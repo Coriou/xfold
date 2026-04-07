@@ -201,6 +201,13 @@ export interface AdImpression {
   displayLocation: string;
   tweetText: string | null;
   deviceType: string | null;
+  /**
+   * Hashed device identifier from `deviceInfo.deviceId`. The same hash is
+   * reused by every advertiser served to the same physical device, which
+   * makes it the strongest cross-advertiser persistence signal in the
+   * archive.
+   */
+  deviceId: string | null;
   targetingCriteria: TargetingCriterion[];
 }
 

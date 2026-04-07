@@ -206,6 +206,7 @@ export function syntheticAdImpression(
     displayLocation: "Timeline",
     tweetText: null,
     deviceType: null,
+    deviceId: null,
     targetingCriteria: [],
     ...overrides,
   };

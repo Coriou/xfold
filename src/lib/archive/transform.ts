@@ -389,6 +389,7 @@ function transformAdImpressionBatch(entry: R): AdImpressionBatch {
         displayLocation: str(i.displayLocation),
         tweetText: i.promotedTweetInfo?.tweetText ?? null,
         deviceType: i.deviceInfo?.deviceType ?? null,
+        deviceId: i.deviceInfo?.deviceId ? str(i.deviceInfo.deviceId) : null,
         targetingCriteria: arr(i.matchedTargetingCriteria).map(
           transformTargetingCriterion,
         ),

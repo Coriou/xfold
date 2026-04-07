@@ -12,8 +12,12 @@ const DB_VERSION = 1;
  * v3 added the required `offTwitter` field on ParsedArchive plus three new
  * fields on Personalization (partnerInterests, doNotReachAdvertisers, typed
  * locationHistory).
+ *
+ * v4 added the `deviceId` field on AdImpression so the device-fingerprint
+ * trail insight can group impressions by the hashed device identifier
+ * advertisers share to retarget across campaigns.
  */
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 4;
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
