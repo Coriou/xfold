@@ -40,7 +40,12 @@ export type ShareCardId =
   | "zombie-interests"
   | "deletion-lie"
   | "broker-label"
-  | "prospectus";
+  | "prospectus"
+  | "plain-english"
+  | "surveillance-timeline"
+  | "x-eras"
+  | "betrayal-stack"
+  | "accuracy-audit";
 
 export type ShareCardCategory =
   | "headline"

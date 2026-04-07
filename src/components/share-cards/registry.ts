@@ -32,8 +32,18 @@ import { zombieInterestsCard } from "./cards/zombie-interests";
 import { deletionLieCard } from "./cards/deletion-lie";
 import { brokerLabelCard } from "./cards/broker-label";
 import { prospectusCard } from "./cards/prospectus";
+import { plainEnglishCard } from "./cards/plain-english";
+import { surveillanceTimelineCard } from "./cards/surveillance-timeline";
+import { xErasCard } from "./cards/x-eras";
+import { betrayalStackCard } from "./cards/betrayal-stack";
+import { accuracyAuditCard } from "./cards/accuracy-audit";
 
 export const SHARE_CARDS: readonly RegisteredShareCard[] = [
+  defineShareCard(plainEnglishCard),
+  defineShareCard(betrayalStackCard),
+  defineShareCard(accuracyAuditCard),
+  defineShareCard(surveillanceTimelineCard),
+  defineShareCard(xErasCard),
   defineShareCard(algorithmicMirrorCard),
   defineShareCard(adPriceTagCard),
   defineShareCard(deletedTweetsCard),
