@@ -8,10 +8,15 @@ import SectionErrorBoundary from "./section-error-boundary";
 
 type SectionComponent = ComponentType<{ archive: ParsedArchive }>;
 
-const SECTION_MAP: Record<string, React.LazyExoticComponent<SectionComponent>> = {
+const SECTION_MAP: Record<
+  string,
+  React.LazyExoticComponent<SectionComponent>
+> = {
   wrapped: lazy(() => import("@/components/sections/wrapped")),
   overview: lazy(() => import("@/components/sections/overview")),
-  "activity-patterns": lazy(() => import("@/components/sections/activity-patterns")),
+  "activity-patterns": lazy(
+    () => import("@/components/sections/activity-patterns"),
+  ),
   interests: lazy(() => import("@/components/sections/interests")),
   "ad-profile": lazy(() => import("@/components/sections/ad-profile")),
   "ad-targeting": lazy(() => import("@/components/sections/ad-targeting")),
@@ -30,7 +35,12 @@ const SECTION_MAP: Record<string, React.LazyExoticComponent<SectionComponent>> =
   lists: lazy(() => import("@/components/sections/lists")),
   media: lazy(() => import("@/components/sections/media-gallery")),
   profile: lazy(() => import("@/components/sections/profile")),
-  "username-history": lazy(() => import("@/components/sections/username-history")),
+  "username-history": lazy(
+    () => import("@/components/sections/username-history"),
+  ),
+  "deleted-tweets": lazy(() => import("@/components/sections/deleted-tweets")),
+  contacts: lazy(() => import("@/components/sections/contacts")),
+  "ghost-data": lazy(() => import("@/components/sections/ghost-data")),
 };
 
 interface ContentAreaProps {

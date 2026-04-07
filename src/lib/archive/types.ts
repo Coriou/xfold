@@ -39,6 +39,19 @@ export interface ParsedArchive {
 
   offTwitter: OffTwitterTracking;
 
+  // --- New data types (hidden / underexplored by X's own viewer) ----------
+  deletedTweets: DeletedTweet[];
+  contacts: UploadedContact[];
+  mutes: SocialEntry[];
+  dmMutes: SocialEntry[];
+  groupDirectMessages: DMConversation[];
+  suspensions: AccountSuspension[];
+  emailChanges: EmailChange[];
+  protectedHistory: ProtectedHistoryEntry[];
+  savedSearches: SavedSearch[];
+  communityNotes: CommunityNote[];
+  communityNoteRatings: CommunityNoteRating[];
+
   /** All parsed data keyed by YTD name, for sections that need raw access */
   raw: Record<string, unknown[]>;
 }
@@ -391,4 +404,76 @@ export interface BranchLinkEvent {
 export interface InferredApp {
   appId: string;
   appNames: string[];
+}
+
+// --- Deleted tweets -------------------------------------------------------
+//
+// X retains deleted tweets in the archive. The user thinks they're gone.
+
+export interface DeletedTweet {
+  id: string;
+  fullText: string;
+  createdAt: string;
+  deletedAt: string | null;
+  isRetweet: boolean;
+  hashtags: string[];
+  mentions: TweetMention[];
+}
+
+// --- Uploaded contacts ----------------------------------------------------
+//
+// When users uploaded their address book, X kept every entry.
+
+export interface UploadedContact {
+  id: string;
+  emails: string[];
+  phoneNumbers: string[];
+  firstName: string | null;
+  lastName: string | null;
+  importedAt: string | null;
+}
+
+// --- Account suspension ---------------------------------------------------
+
+export interface AccountSuspension {
+  action: string;
+  timestamp: string;
+}
+
+// --- Email changes --------------------------------------------------------
+
+export interface EmailChange {
+  changedAt: string;
+  changedFrom: string;
+  changedTo: string;
+}
+
+// --- Protected history ----------------------------------------------------
+
+export interface ProtectedHistoryEntry {
+  action: string;
+  timestamp: string;
+}
+
+// --- Saved searches -------------------------------------------------------
+
+export interface SavedSearch {
+  query: string;
+  savedAt: string;
+}
+
+// --- Community notes ------------------------------------------------------
+
+export interface CommunityNote {
+  noteId: string;
+  tweetId: string | null;
+  noteText: string;
+  createdAt: string;
+  language: string | null;
+}
+
+export interface CommunityNoteRating {
+  noteId: string;
+  helpfulnessLevel: string;
+  createdAt: string;
 }

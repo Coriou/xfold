@@ -26,6 +26,16 @@ export interface PrivacyScore {
   grade: string; // A-F
   categories: CategoryScore[];
   headline: string;
+  /** One-sentence real-world analogy to make the score visceral */
+  analogy: string;
+  /** The single most concerning finding, with context */
+  spotlight: PrivacySpotlight | null;
+}
+
+export interface PrivacySpotlight {
+  categoryLabel: string;
+  finding: string;
+  severity: "medium" | "high";
 }
 
 // --- Helpers ----------------------------------------------------------------
@@ -104,7 +114,10 @@ function scoreBehavioral(archive: ParsedArchive): CategoryScore {
   const genderInferred = p?.gender ? 1 : 0;
   const ageInferred = p?.inferredAge ? 1 : 0;
 
-  const raw = activeInterests.length + showsCount * 0.5 + (genderInferred + ageInferred) * 20;
+  const raw =
+    activeInterests.length +
+    showsCount * 0.5 +
+    (genderInferred + ageInferred) * 20;
   const score = normalize(raw, 100);
 
   const metrics: CategoryMetric[] = [
@@ -266,7 +279,9 @@ function scoreThirdParty(archive: ParsedArchive): CategoryScore {
   const total = archive.connectedApps.length;
   const writeApps = archive.connectedApps.filter((a) =>
     a.permissions.some(
-      (p) => p.toLowerCase().includes("write") || p.toLowerCase().includes("direct message"),
+      (p) =>
+        p.toLowerCase().includes("write") ||
+        p.toLowerCase().includes("direct message"),
     ),
   );
 
@@ -379,10 +394,73 @@ function headline(score: number): string {
     return "X has built an extensive surveillance profile on you.";
   if (score >= 61)
     return "X has collected a significant amount of data about you.";
-  if (score >= 41)
-    return "X has a moderate data footprint on your activity.";
+  if (score >= 41) return "X has a moderate data footprint on your activity.";
   if (score >= 21) return "X has collected limited data about you.";
   return "Your X data footprint is relatively small.";
+}
+
+function buildAnalogy(archive: ParsedArchive, score: number): string {
+  const deviceCount =
+    archive.deviceTokens.length +
+    archive.niDevices.length +
+    archive.keyRegistryDevices.length;
+  const uniqueIps = new Set(archive.ipAudit.map((e) => e.loginIp)).size;
+
+  const advertiserSet = new Set<string>();
+  for (const batch of archive.adImpressions) {
+    for (const imp of batch.impressions) advertiserSet.add(imp.advertiserName);
+  }
+  for (const batch of archive.adEngagements) {
+    for (const eng of batch.engagements) advertiserSet.add(eng.advertiserName);
+  }
+
+  // Pick the most visceral analogy based on what's most extreme
+  const deletedCount = archive.deletedTweets?.length ?? 0;
+  const contactCount = archive.contacts?.length ?? 0;
+  if (deletedCount > 50) {
+    return `You deleted ${deletedCount.toLocaleString()} tweets thinking they were gone. X kept every single one.`;
+  }
+  if (contactCount > 100) {
+    return `You gave X ${contactCount.toLocaleString()} contacts from your phone — people who never agreed to share their info.`;
+  }
+  if (advertiserSet.size > 200) {
+    return `${advertiserSet.size.toLocaleString()} different companies paid to reach you — that's more brands than most supermarkets stock.`;
+  }
+  if (deviceCount > 10) {
+    return `X fingerprinted ${deviceCount} of your devices — like a private investigator tracking you across ${deviceCount} locations.`;
+  }
+  if (uniqueIps > 20) {
+    return `X logged ${uniqueIps} unique IPs where you accessed your account — a detailed map of everywhere you've been online.`;
+  }
+  if (score >= 60) {
+    return "X knows more about your online habits than most people you've met in person.";
+  }
+  return "X has been quietly assembling a profile on you, one interaction at a time.";
+}
+
+function buildSpotlight(categories: CategoryScore[]): PrivacySpotlight | null {
+  // Find the worst category
+  const worst = categories[0];
+  if (!worst || worst.score <= 30) return null;
+
+  // Find the worst metric in that category
+  const worstMetric = worst.metrics.reduce<CategoryMetric | null>((best, m) => {
+    if (!best) return m;
+    return m.severity === "high" && best.severity !== "high" ? m : best;
+  }, null);
+
+  if (!worstMetric) return null;
+
+  const value =
+    typeof worstMetric.value === "number"
+      ? worstMetric.value.toLocaleString()
+      : worstMetric.value;
+
+  return {
+    categoryLabel: worst.label,
+    finding: `${worstMetric.label}: ${value}${worstMetric.detail ? ` (${worstMetric.detail})` : ""}`,
+    severity: worst.score >= 60 ? "high" : "medium",
+  };
 }
 
 export function computePrivacyScore(archive: ParsedArchive): PrivacyScore {
@@ -409,5 +487,7 @@ export function computePrivacyScore(archive: ParsedArchive): PrivacyScore {
     grade: toGrade(overall),
     categories: categories.sort((a, b) => b.score - a.score),
     headline: headline(overall),
+    analogy: buildAnalogy(archive, overall),
+    spotlight: buildSpotlight(categories),
   };
 }

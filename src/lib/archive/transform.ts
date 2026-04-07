@@ -41,6 +41,14 @@ import type {
   InferredApp,
   MobileConversionEvent,
   OnlineConversionEvent,
+  DeletedTweet,
+  UploadedContact,
+  AccountSuspension,
+  EmailChange,
+  ProtectedHistoryEntry,
+  SavedSearch,
+  CommunityNote,
+  CommunityNoteRating,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -122,18 +130,41 @@ export function transformArchive(
       mobileConversionsAttributed: r("ad_mobile_conversions_attributed").map(
         transformMobileConversion(true),
       ),
-      mobileConversionsUnattributed: r("ad_mobile_conversions_unattributed").map(
-        transformMobileConversion(false),
-      ),
+      mobileConversionsUnattributed: r(
+        "ad_mobile_conversions_unattributed",
+      ).map(transformMobileConversion(false)),
       onlineConversionsAttributed: r("ad_online_conversions_attributed").map(
         transformOnlineConversion(true),
       ),
-      onlineConversionsUnattributed: r("ad_online_conversions_unattributed").map(
-        transformOnlineConversion(false),
-      ),
+      onlineConversionsUnattributed: r(
+        "ad_online_conversions_unattributed",
+      ).map(transformOnlineConversion(false)),
       branchLinks: r("branch_links").map(transformBranchLink),
       inferredApps: r("app").map(transformInferredApp),
     },
+
+    // --- New data types ---
+    deletedTweets: [
+      ...r("deleted_tweets").map(transformDeletedTweet),
+      ...r("deleted_note_tweet").map(transformDeletedTweet),
+    ],
+    contacts: r("contact").map(transformContact),
+    mutes: r("mute").map(transformSocialEntry("muting")),
+    dmMutes: r("direct_message_mute").map(
+      transformSocialEntry("direct_message_muting"),
+    ),
+    groupDirectMessages: r("direct_messages_group").map(
+      transformDMConversation,
+    ),
+    suspensions: r("account_suspension").map(transformSuspension),
+    emailChanges: r("email_address_change").map(transformEmailChange),
+    protectedHistory: r("protected_history").map(transformProtectedHistory),
+    savedSearches: r("saved_search").map(transformSavedSearch),
+    communityNotes: r("community_note").map(transformCommunityNote),
+    communityNoteRatings: r("community_note_rating").map(
+      transformCommunityNoteRating,
+    ),
+
     raw: raw as Record<string, unknown[]>,
   };
 }
@@ -199,8 +230,7 @@ function transformAccount(raw: Record<string, unknown>): AccountInfo | null {
   const phone = first(arr(raw["phone_number"]))?.device;
   const verified = first(arr(raw["verified"]))?.verified;
   const age = first(arr(raw["ageinfo"]))?.ageMeta?.ageInfo;
-  const creationIp = first(arr(raw["account_creation_ip"]))
-    ?.accountCreationIp;
+  const creationIp = first(arr(raw["account_creation_ip"]))?.accountCreationIp;
 
   return {
     accountId: str(acct.accountId),
@@ -254,7 +284,9 @@ function transformTweet(entry: R): Tweet {
     hashtags: arr(entities.hashtags).map((h: R) => str(h.text)),
     mentions: arr(entities.user_mentions).map(transformMention),
     urls: arr(entities.urls).map(transformUrl),
-    media: mediaArr.map((m: R) => transformTweetMedia(m, str(t.id_str ?? t.id))),
+    media: mediaArr.map((m: R) =>
+      transformTweetMedia(m, str(t.id_str ?? t.id)),
+    ),
   };
 }
 
@@ -284,7 +316,9 @@ function transformTweetMedia(m: R, parentTweetId: string): TweetMedia {
     type: m.type || "photo",
     width: num(m.sizes?.large?.w ?? m.sizes?.medium?.w),
     height: num(m.sizes?.large?.h ?? m.sizes?.medium?.h),
-    localPath: basename ? `data/tweets_media/${parentTweetId}-${basename}` : null,
+    localPath: basename
+      ? `data/tweets_media/${parentTweetId}-${basename}`
+      : null,
     videoVariants: m.video_info
       ? arr(m.video_info.variants).map(
           (v: R): VideoVariant => ({
@@ -338,9 +372,7 @@ function transformDMReaction(r: R): DMReaction {
   };
 }
 
-function transformSocialEntry(
-  wrapperKey: string,
-): (entry: R) => SocialEntry {
+function transformSocialEntry(wrapperKey: string): (entry: R) => SocialEntry {
   return (entry: R) => {
     const e = entry[wrapperKey] ?? entry;
     return {
@@ -351,9 +383,7 @@ function transformSocialEntry(
 }
 
 function transformAdEngagementBatch(entry: R): AdEngagementBatch {
-  const engagements = arr(
-    entry.ad?.adsUserData?.adEngagements?.engagements,
-  );
+  const engagements = arr(entry.ad?.adsUserData?.adEngagements?.engagements);
 
   return {
     engagements: engagements.map((e: R): AdEngagement => {
@@ -376,9 +406,7 @@ function transformAdEngagementBatch(entry: R): AdEngagementBatch {
 }
 
 function transformAdImpressionBatch(entry: R): AdImpressionBatch {
-  const impressions = arr(
-    entry.ad?.adsUserData?.adImpressions?.impressions,
-  );
+  const impressions = arr(entry.ad?.adsUserData?.adImpressions?.impressions);
 
   return {
     impressions: impressions.map(
@@ -565,9 +593,7 @@ function groupGrokConversations(data: any[]): GrokConversation[] {
 
   return Array.from(byChat.entries()).map(([chatId, messages]) => ({
     chatId,
-    messages: messages.sort(
-      (a, b) => a.createdAt.localeCompare(b.createdAt),
-    ),
+    messages: messages.sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
   }));
 }
 
@@ -580,9 +606,7 @@ function transformScreenNameChange(entry: R): ScreenNameChange {
   };
 }
 
-function transformList(
-  type: ListInfo["type"],
-): (entry: R) => ListInfo {
+function transformList(type: ListInfo["type"]): (entry: R) => ListInfo {
   return (entry: R) => ({
     url: str(entry.userListInfo?.url ?? entry.url),
     type,
@@ -663,4 +687,86 @@ function transformInferredApp(entry: R): InferredApp {
     appNames: arr(a.appNames).map(String),
   };
 }
+
+// --- New data type transformers ---------------------------------------------
+
+function transformDeletedTweet(entry: R): DeletedTweet {
+  const t = entry.tweet ?? entry.deletedTweet ?? entry;
+  const entities = t.entities ?? {};
+  return {
+    id: str(t.id_str ?? t.id ?? t.tweetId),
+    fullText: str(t.full_text ?? t.fullText),
+    createdAt: str(t.created_at ?? t.createdAt),
+    deletedAt: t.deletedAt ? str(t.deletedAt) : null,
+    isRetweet: str(t.full_text ?? t.fullText).startsWith("RT @"),
+    hashtags: arr(entities.hashtags).map((h: R) => str(h.text)),
+    mentions: arr(entities.user_mentions).map(transformMention),
+  };
+}
+
+function transformContact(entry: R): UploadedContact {
+  const c = entry.contact ?? entry;
+  return {
+    id: str(c.id),
+    emails: arr(c.emails).map(String),
+    phoneNumbers: arr(c.phoneNumbers).map(String),
+    firstName: c.firstName ? str(c.firstName) : null,
+    lastName: c.lastName ? str(c.lastName) : null,
+    importedAt: c.importedAt ? str(c.importedAt) : null,
+  };
+}
+
+function transformSuspension(entry: R): AccountSuspension {
+  const s = entry.accountSuspension ?? entry;
+  return {
+    action: str(s.action ?? s.type),
+    timestamp: str(s.timeStamp ?? s.timestamp ?? s.createdAt),
+  };
+}
+
+function transformEmailChange(entry: R): EmailChange {
+  const c = entry.emailAddressChange ?? entry;
+  return {
+    changedAt: str(c.changedAt ?? c.createdAt),
+    changedFrom: str(c.changedFrom ?? c.previousAddress ?? c.from),
+    changedTo: str(c.changedTo ?? c.currentAddress ?? c.to),
+  };
+}
+
+function transformProtectedHistory(entry: R): ProtectedHistoryEntry {
+  const p = entry.protectedHistory ?? entry;
+  return {
+    action: str(p.action ?? p.protectedStatus),
+    timestamp: str(p.timestamp ?? p.changedAt ?? p.createdAt),
+  };
+}
+
+function transformSavedSearch(entry: R): SavedSearch {
+  const s = entry.savedSearch ?? entry;
+  return {
+    query: str(s.query ?? s.savedSearch),
+    savedAt: str(s.savedAt ?? s.createdAt),
+  };
+}
+
+function transformCommunityNote(entry: R): CommunityNote {
+  const n = entry.communityNote ?? entry;
+  return {
+    noteId: str(n.noteId ?? n.id),
+    tweetId: n.tweetId ? str(n.tweetId) : null,
+    noteText: str(n.noteText ?? n.summary ?? n.text),
+    createdAt: str(n.createdAt ?? n.timestampMillis),
+    language: n.language ? str(n.language) : null,
+  };
+}
+
+function transformCommunityNoteRating(entry: R): CommunityNoteRating {
+  const r = entry.communityNoteRating ?? entry;
+  return {
+    noteId: str(r.noteId),
+    helpfulnessLevel: str(r.helpfulnessLevel ?? r.helpfulness),
+    createdAt: str(r.createdAt ?? r.timestampMillis),
+  };
+}
+
 /* eslint-enable @typescript-eslint/no-explicit-any */

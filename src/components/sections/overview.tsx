@@ -7,14 +7,15 @@ import { SectionHeader } from "@/components/shared/section-header";
 import { ScoreRing } from "@/components/shared/score-ring";
 import { ScoreCategoryCard } from "@/components/shared/score-category-card";
 import { ShareGallery } from "@/components/share-cards/share-gallery";
-import { formatAccountAge, parseDate, formatDate, pluralize } from "@/lib/format";
+import {
+  formatAccountAge,
+  parseDate,
+  formatDate,
+  pluralize,
+} from "@/lib/format";
 import { chartColors } from "@/lib/brand";
 
-export default function Overview({
-  archive,
-}: {
-  archive: ParsedArchive;
-}) {
+export default function Overview({ archive }: { archive: ParsedArchive }) {
   const score = useMemo(() => computePrivacyScore(archive), [archive]);
   const [cardOpen, setCardOpen] = useState(false);
 
@@ -64,16 +65,28 @@ export default function Overview({
     }
 
     const ranges = [
-      dateRange("Tweets", archive.tweets.map((t) => t.createdAt)),
+      dateRange(
+        "Tweets",
+        archive.tweets.map((t) => t.createdAt),
+      ),
       dateRange(
         "DMs",
         archive.directMessages.flatMap((c) =>
           c.messages.map((m) => m.createdAt),
         ),
       ),
-      dateRange("Login IPs", archive.ipAudit.map((e) => e.createdAt)),
-      dateRange("Device Tokens", archive.deviceTokens.map((d) => d.createdAt)),
-      dateRange("Connected Apps", archive.connectedApps.map((a) => a.approvedAt)),
+      dateRange(
+        "Login IPs",
+        archive.ipAudit.map((e) => e.createdAt),
+      ),
+      dateRange(
+        "Device Tokens",
+        archive.deviceTokens.map((d) => d.createdAt),
+      ),
+      dateRange(
+        "Connected Apps",
+        archive.connectedApps.map((a) => a.approvedAt),
+      ),
       dateRange(
         "Grok",
         archive.grokConversations.flatMap((c) =>
@@ -96,8 +109,14 @@ export default function Overview({
         "Screen Names",
         archive.screenNameChanges.map((s) => s.changedAt),
       ),
-      dateRange("Devices", archive.niDevices.map((d) => d.createdDate)),
-      dateRange("Key Registry", archive.keyRegistryDevices.map((d) => d.createdAt)),
+      dateRange(
+        "Devices",
+        archive.niDevices.map((d) => d.createdDate),
+      ),
+      dateRange(
+        "Key Registry",
+        archive.keyRegistryDevices.map((d) => d.createdAt),
+      ),
     ].filter((r): r is Range => r !== null);
 
     if (ranges.length === 0) return null;
@@ -128,6 +147,7 @@ export default function Overview({
           <p className="text-lg font-medium text-foreground">
             {score.headline}
           </p>
+          <p className="text-sm text-foreground-muted">{score.analogy}</p>
           {accountAge && (
             <p className="text-sm text-foreground-muted">
               {accountAge} of data collection.
@@ -141,6 +161,30 @@ export default function Overview({
           </button>
         </div>
       </div>
+
+      {/* Spotlight — single most concerning finding */}
+      {score.spotlight && (
+        <div
+          className={`mb-6 rounded-xl border p-4 ${
+            score.spotlight.severity === "high"
+              ? "border-danger/30 bg-danger/5"
+              : "border-accent/30 bg-accent/5"
+          }`}
+        >
+          <p
+            className={`text-xs font-semibold uppercase tracking-wider ${
+              score.spotlight.severity === "high"
+                ? "text-danger"
+                : "text-accent"
+            }`}
+          >
+            Biggest concern: {score.spotlight.categoryLabel}
+          </p>
+          <p className="mt-1 text-sm text-foreground">
+            {score.spotlight.finding}
+          </p>
+        </div>
+      )}
 
       {/* Category grid */}
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -202,13 +246,20 @@ export default function Overview({
           </div>
 
           {/* Year markers */}
-          <div className="mt-2 flex" style={{ paddingLeft: "calc(7rem + 0.75rem)" }}>
+          <div
+            className="mt-2 flex"
+            style={{ paddingLeft: "calc(7rem + 0.75rem)" }}
+          >
             <div className="flex flex-1 justify-between text-[10px] text-foreground-muted/50">
               {(() => {
                 const minYear = new Date(footprint.globalMin).getFullYear();
                 const maxYear = new Date(footprint.globalMax).getFullYear();
                 const years: number[] = [];
-                for (let y = minYear; y <= maxYear; y += Math.max(1, Math.floor((maxYear - minYear) / 6))) {
+                for (
+                  let y = minYear;
+                  y <= maxYear;
+                  y += Math.max(1, Math.floor((maxYear - minYear) / 6))
+                ) {
                   years.push(y);
                 }
                 if (!years.includes(maxYear)) years.push(maxYear);

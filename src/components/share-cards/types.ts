@@ -27,7 +27,10 @@ export type ShareCardId =
   | "score"
   | "asked-grok"
   | "doors-open"
-  | "dossier";
+  | "dossier"
+  | "deleted-tweets"
+  | "ghost-data"
+  | "contacts";
 
 export type ShareCardCategory =
   | "headline"

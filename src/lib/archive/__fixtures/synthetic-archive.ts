@@ -80,6 +80,17 @@ export function buildSyntheticArchive(
       branchLinks: [],
       inferredApps: [],
     },
+    deletedTweets: [],
+    contacts: [],
+    mutes: [],
+    dmMutes: [],
+    groupDirectMessages: [],
+    suspensions: [],
+    emailChanges: [],
+    protectedHistory: [],
+    savedSearches: [],
+    communityNotes: [],
+    communityNoteRatings: [],
     raw: {},
   };
   return { ...base, ...overrides };
@@ -277,9 +288,7 @@ export function syntheticConnectedApp(
   };
 }
 
-export function syntheticNiDevice(
-  overrides: Partial<NiDevice> = {},
-): NiDevice {
+export function syntheticNiDevice(overrides: Partial<NiDevice> = {}): NiDevice {
   return {
     type: "push",
     deviceType: "iPhone",
@@ -338,9 +347,7 @@ export function syntheticScreenNameChange(
   };
 }
 
-export function syntheticListInfo(
-  overrides: Partial<ListInfo> = {},
-): ListInfo {
+export function syntheticListInfo(overrides: Partial<ListInfo> = {}): ListInfo {
   return {
     url: "https://twitter.com/i/lists/1",
     type: "created",

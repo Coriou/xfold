@@ -9,13 +9,9 @@ import { DataTable, type Column } from "@/components/shared/data-table";
 import { pluralize } from "@/lib/format";
 import { safeHref } from "@/lib/safe-href";
 
-type Tab = "followers" | "following" | "blocks" | "overlap";
+type Tab = "followers" | "following" | "blocks" | "mutes" | "overlap";
 
-export default function SocialGraph({
-  archive,
-}: {
-  archive: ParsedArchive;
-}) {
+export default function SocialGraph({ archive }: { archive: ParsedArchive }) {
   const [tab, setTab] = useState<Tab>("overlap");
   const [search, setSearch] = useState("");
 
@@ -41,6 +37,7 @@ export default function SocialGraph({
     { id: "followers", label: "Followers", count: archive.followers.length },
     { id: "following", label: "Following", count: archive.following.length },
     { id: "blocks", label: "Blocks", count: archive.blocks.length },
+    { id: "mutes", label: "Mutes", count: archive.mutes.length },
   ];
 
   const handleTabChange = (t: Tab) => {
@@ -52,7 +49,7 @@ export default function SocialGraph({
     <div>
       <SectionHeader
         title="Your Social Graph"
-        description={`${pluralize(archive.followers.length, "follower")}, ${pluralize(archive.following.length, "following")}, ${pluralize(archive.blocks.length, "blocked account")}.`}
+        description={`${pluralize(archive.followers.length, "follower")}, ${pluralize(archive.following.length, "following")}, ${pluralize(archive.blocks.length, "blocked account")}${archive.mutes.length > 0 ? `, ${pluralize(archive.mutes.length, "muted account")}` : ""}.`}
       />
 
       {/* Tabs */}
@@ -82,7 +79,9 @@ export default function SocialGraph({
               ? archive.followers
               : tab === "following"
                 ? archive.following
-                : archive.blocks
+                : tab === "mutes"
+                  ? archive.mutes
+                  : archive.blocks
           }
           search={search}
           onSearch={setSearch}
@@ -248,7 +247,11 @@ function ListView({
           count={search ? filtered.length : undefined}
         />
       </div>
-      <DataTable data={filtered} columns={columns} emptyMessage="No accounts found." />
+      <DataTable
+        data={filtered}
+        columns={columns}
+        emptyMessage="No accounts found."
+      />
     </>
   );
 }
