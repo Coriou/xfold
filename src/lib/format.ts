@@ -6,11 +6,19 @@
 export function parseDate(str: string): Date | null {
   if (!str) return null;
 
-  // ISO 8601: "2025-01-25T15:36:13.409Z"
-  // Twitter custom: "Thu Mar 27 14:27:05 +0000 2026"
-  // Dot format: "2024.03.15"
-  const d = new Date(str.replace(/\./g, "-"));
-  return isNaN(d.getTime()) ? null : d;
+  // The archive ships dates in three formats:
+  //   ISO 8601:        "2025-01-25T15:36:13.409Z"
+  //   Twitter custom:  "Thu Mar 27 14:27:05 +0000 2026"
+  //   Dot format:      "2024.03.15"
+  //
+  // Try the input as-is first — that handles ISO 8601 (including the dots
+  // in the milliseconds component) and Twitter custom in one shot. Only
+  // fall back to dot-replacement for the YYYY.MM.DD case.
+  const direct = new Date(str);
+  if (!isNaN(direct.getTime())) return direct;
+
+  const dotted = new Date(str.replace(/\./g, "-"));
+  return isNaN(dotted.getTime()) ? null : dotted;
 }
 
 /** Format a date string to "Oct 10, 2012" */
