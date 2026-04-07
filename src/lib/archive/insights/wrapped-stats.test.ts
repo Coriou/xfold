@@ -65,6 +65,30 @@ describe("buildWrappedStats", () => {
     expect(buildWrappedStats(archive)?.breakdown.persona).toBe("Broadcaster");
   });
 
+  it("breaks an original/retweet/reply tie in favor of Broadcaster", () => {
+    // 1 of each — pure tie. The previous code's first-listed-wins behavior
+    // would have picked "Conversationalist" from statement order; we now
+    // require a strict majority of replies for that label.
+    const archive = buildSyntheticArchive({
+      tweets: [
+        syntheticTweet({ id: "1" }),
+        syntheticTweet({ id: "2", isRetweet: true, fullText: "RT @x: hi" }),
+        syntheticTweet({ id: "3", inReplyToStatusId: "y" }),
+      ],
+    });
+    expect(buildWrappedStats(archive)?.breakdown.persona).toBe("Broadcaster");
+  });
+
+  it("breaks a retweet/reply tie (with no originals) in favor of Curator", () => {
+    const archive = buildSyntheticArchive({
+      tweets: [
+        syntheticTweet({ id: "1", isRetweet: true, fullText: "RT @x: hi" }),
+        syntheticTweet({ id: "2", inReplyToStatusId: "y" }),
+      ],
+    });
+    expect(buildWrappedStats(archive)?.breakdown.persona).toBe("Curator");
+  });
+
   it("buckets tweets by year ascending", () => {
     const archive = buildSyntheticArchive({
       tweets: [

@@ -3,14 +3,16 @@ import type { ComputeContext, ShareabilityScore } from "../../types";
 
 export interface AccuracyAuditCardProps {
   readonly username: string;
-  /** "X got N% wrong" — the headline number. */
-  readonly wrongPercent: number;
+  /** Share of interests with no behavioral evidence (0–100). The headline. */
+  readonly unconfirmedPercent: number;
+  /** Share of interests confirmed by the user's own tweets/likes (0–100). */
+  readonly confirmedPercent: number;
   readonly totalAudited: number;
   readonly confirmedCount: number;
-  readonly wrongCount: number;
+  readonly unconfirmedCount: number;
   readonly boughtCount: number;
-  /** Up to 4 wrong interests as concrete examples. */
-  readonly wrongExamples: readonly string[];
+  /** Up to 4 unconfirmed interests as concrete examples. */
+  readonly unconfirmedExamples: readonly string[];
   /** Up to 2 confirmed interests for balance. */
   readonly confirmedExamples: readonly string[];
 }
@@ -20,17 +22,20 @@ export function computeAccuracyAudit(
 ): AccuracyAuditCardProps | null {
   const audit = buildAccuracyAudit(ctx.archive);
   if (!audit || audit.totalAudited < 10) return null;
-  // Only interesting if there's a meaningful wrong percentage
-  if (audit.wrongPercent < 15) return null;
+  // Only show the card if there's a meaningful unconfirmed pile.
+  // Threshold is on the new denominator (which uses *all* interests),
+  // so 25% means roughly 1 in 4 inferences has no behavioral backing.
+  if (audit.unconfirmedPercent < 25) return null;
 
   return {
     username: ctx.archive.meta.username,
-    wrongPercent: audit.wrongPercent,
+    unconfirmedPercent: audit.unconfirmedPercent,
+    confirmedPercent: audit.confirmedPercent,
     totalAudited: audit.totalAudited,
     confirmedCount: audit.confirmedCount,
-    wrongCount: audit.wrongCount,
+    unconfirmedCount: audit.unconfirmedCount,
     boughtCount: audit.boughtCount,
-    wrongExamples: audit.topWrong.slice(0, 4).map((e) => e.name),
+    unconfirmedExamples: audit.topUnconfirmed.slice(0, 4).map((e) => e.name),
     confirmedExamples: audit.topConfirmed.slice(0, 2).map((e) => e.name),
   };
 }
@@ -39,12 +44,14 @@ export function computeAccuracyAuditShareability(
   props: AccuracyAuditCardProps,
 ): ShareabilityScore {
   return {
-    magnitude: Math.min(100, (props.wrongPercent / 80) * 100),
-    // Very high specificity — concrete wrong/right examples from archive
+    magnitude: Math.min(100, (props.unconfirmedPercent / 80) * 100),
+    // Very high specificity — concrete unconfirmed/confirmed examples
     specificity: Math.min(
       100,
-      70 + props.wrongExamples.length * 5 + props.confirmedExamples.length * 3,
+      70 +
+        props.unconfirmedExamples.length * 5 +
+        props.confirmedExamples.length * 3,
     ),
-    uniqueness: 92, // "How wrong is the algorithm" is a unique framing
+    uniqueness: 90, // "How much of the algorithm's profile has evidence" framing
   };
 }

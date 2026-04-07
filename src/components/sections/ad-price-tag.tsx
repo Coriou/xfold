@@ -26,12 +26,13 @@ export default function AdPriceTagSection({
   }
 
   const formattedRevenue = formatCurrency(priceTag.estimatedRevenue);
+  const formattedRange = `${formatCurrency(priceTag.estimatedRevenueLow)} – ${formatCurrency(priceTag.estimatedRevenueHigh)}`;
 
   return (
     <div>
       <SectionHeader
         title="Your Ad Price Tag"
-        description="How much X earned from showing you ads — estimated from your ad impression data and public CPM benchmarks by targeting type."
+        description="How much X likely earned from showing you ads. The dollar amounts are estimates built from your impression count and published CPM ranges by targeting type — they are not pulled from X's books."
       />
 
       {/* Hero revenue card */}
@@ -40,7 +41,10 @@ export default function AdPriceTagSection({
           Estimated ad revenue from your attention
         </p>
         <p className="font-mono text-5xl font-bold text-foreground">
-          {formattedRevenue}
+          ~{formattedRevenue}
+        </p>
+        <p className="mt-2 text-xs font-mono text-foreground-muted">
+          range: {formattedRange}
         </p>
         <p className="mt-3 text-sm text-foreground-muted">
           Based on {formatNumber(priceTag.totalImpressions)} ad impressions from{" "}
@@ -141,7 +145,7 @@ export default function AdPriceTagSection({
 
       {/* Most expensive method callout */}
       {priceTag.mostExpensiveMethod && (
-        <div className="rounded-2xl border border-border bg-background-raised p-6">
+        <div className="mb-6 rounded-2xl border border-border bg-background-raised p-6">
           <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-foreground-muted">
             Most expensive thing about you
           </p>
@@ -150,13 +154,24 @@ export default function AdPriceTagSection({
           </p>
           <p className="mt-1 text-sm text-foreground-muted">
             {formatNumber(priceTag.mostExpensiveMethod.impressions)} impressions
-            at ~${priceTag.mostExpensiveMethod.estimatedCpm.toFixed(2)} CPM ={" "}
+            at ~${priceTag.mostExpensiveMethod.estimatedCpm.toFixed(2)} CPM ≈{" "}
             {formatCurrency(priceTag.mostExpensiveMethod.estimatedRevenue)} in
             estimated revenue. This targeting type is expensive because it uses
             data X collected specifically about you.
           </p>
         </div>
       )}
+
+      {/* Methodology disclaimer */}
+      <div className="rounded-xl border border-border bg-background p-4 text-xs text-foreground-muted">
+        <p className="font-semibold text-foreground">How these numbers are estimated</p>
+        <p className="mt-1 leading-relaxed">
+          Impression counts are exact (from your archive). Dollar values are
+          modelled from public CPM ranges by targeting type — typically
+          accurate to within ±50%. X never publishes per-user revenue. Treat
+          the headline as an order of magnitude, not a billable amount.
+        </p>
+      </div>
     </div>
   );
 }

@@ -233,9 +233,14 @@ function areSimilar(a: YearBucket, b: YearBucket): boolean {
   const aTpd = a.tweets.length / days;
   const bTpd = b.tweets.length / days;
 
-  // Similar volume (within 3x of each other, or both under 0.5/day)
+  // Similar volume (within 3x of each other, or both quiet)
+  // If one year is "loud" (>0.5 tweets/day) we compare ratios; the previous
+  // implementation used `|| 0.01` as a divide-by-zero guard which produced
+  // wildly distorted ratios when one bucket was empty. The right answer in
+  // that case is "yes, a loud year and a silent year are NOT similar".
   if (aTpd > 0.5 || bTpd > 0.5) {
-    const ratio = aTpd > bTpd ? aTpd / (bTpd || 0.01) : bTpd / (aTpd || 0.01);
+    if (aTpd === 0 || bTpd === 0) return false;
+    const ratio = aTpd > bTpd ? aTpd / bTpd : bTpd / aTpd;
     if (ratio > 3) return false;
   }
 

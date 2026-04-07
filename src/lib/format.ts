@@ -84,6 +84,34 @@ export function formatHour(hour: number): string {
   return `${hour - 12} PM`;
 }
 
+/**
+ * Return the hour-of-day (0-23) for a Date in the given IANA timezone.
+ *
+ * Used by hour-of-day insights so a user who tweeted from EST and views
+ * from PST sees their *actual* tweeting hours, not their viewer-local ones.
+ *
+ * Falls back to runtime-local `getHours()` if no timezone is provided or
+ * the timezone is not a valid IANA identifier.
+ */
+export function getHourInTimezone(
+  date: Date,
+  timezone: string | null | undefined,
+): number {
+  if (!timezone) return date.getHours();
+  try {
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hour: "2-digit",
+      hourCycle: "h23",
+    });
+    const hour = parseInt(fmt.format(date), 10);
+    if (Number.isFinite(hour) && hour >= 0 && hour <= 23) return hour;
+  } catch {
+    // Fall through to runtime hours
+  }
+  return date.getHours();
+}
+
 /** Format a Date as "YYYY-MM" for monthly bucketing */
 export function toMonthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;

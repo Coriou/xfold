@@ -9,12 +9,21 @@
 //      age, interests, languages, installed apps, location history,
 //      partner interests, audience lists, ad targeting demographics).
 //
-// Then cross-references ad targeting criteria to extract hidden demographic
-// buckets (income, job, education) that X assigned but never surfaced in the
-// personalization section — they only appear as targeting criteria values.
+// Then cross-references ad targeting criteria to extract advertiser-visible
+// inferences (income, job, education, life events) that X assigned but
+// never surfaced in the personalization section — they only appear as
+// targeting criteria values.
+//
+// Note: we deliberately do NOT call these "hidden" — the targeting type
+// list is incomplete (X has dozens more), and "advertiser-visible" is the
+// honest framing.
 // ---------------------------------------------------------------------------
 
 import type { ParsedArchive } from "@/lib/archive/types";
+import {
+  buildCorpus,
+  isInterestConfirmed,
+} from "@/lib/archive/interest-matching";
 
 // --- Types ------------------------------------------------------------------
 
@@ -47,26 +56,33 @@ export interface ShadowProfile {
   readonly inferredCount: number;
   /** How much bigger the inferred profile is vs explicit — a ratio. */
   readonly inferredRatio: number;
-  /** Ad-targeting demographics hidden from the personalization page. */
-  readonly hiddenDemographics: readonly HiddenDemographic[];
-  /** Interests X assigned that the user never mentioned in tweets/likes. */
+  /**
+   * Advertiser-visible demographic inferences (income range, job title,
+   * life events, etc.) extracted from ad targeting criteria. These don't
+   * appear in the personalization page — only advertisers see them.
+   */
+  readonly advertiserDemographics: readonly AdvertiserDemographic[];
+  /** Interests X assigned with no behavioral evidence in tweets/likes. */
   readonly unconfirmedInterestCount: number;
   /** Total interests assigned. */
   readonly totalInterestCount: number;
 }
 
-export interface HiddenDemographic {
+export interface AdvertiserDemographic {
   readonly type: string;
   readonly value: string;
   /** How many advertisers used this criterion to target the user. */
   readonly advertiserCount: number;
 }
 
-// --- Hidden demographics extraction -----------------------------------------
+// --- Advertiser-visible demographics extraction -----------------------------
 
 /**
- * Targeting types that reveal demographic inferences X doesn't show in the
- * personalization section. These only appear as ad-targeting criteria.
+ * Targeting types that reveal demographic inferences X never surfaces in
+ * the personalization section. These only appear as ad-targeting criteria.
+ *
+ * This list is intentionally a starter set — X exposes ~50+ targeting
+ * types and our coverage is the most-impactful subset, not exhaustive.
  */
 const DEMOGRAPHIC_TARGETING_TYPES = new Set([
   "Conversation topics",
@@ -84,9 +100,9 @@ const DEMOGRAPHIC_TARGETING_TYPES = new Set([
   "Purchase behavior",
 ]);
 
-function extractHiddenDemographics(
+function extractAdvertiserDemographics(
   archive: ParsedArchive,
-): HiddenDemographic[] {
+): AdvertiserDemographic[] {
   const map = new Map<
     string,
     { type: string; value: string; advs: Set<string> }
@@ -473,10 +489,10 @@ export function buildShadowProfile(archive: ParsedArchive): ShadowProfile {
     });
   }
 
-  // Hidden demographics from ad targeting
-  const hiddenDemographics = extractHiddenDemographics(archive);
+  // Advertiser-visible demographics from ad targeting
+  const advertiserDemographics = extractAdvertiserDemographics(archive);
 
-  for (const demo of hiddenDemographics.slice(0, 10)) {
+  for (const demo of advertiserDemographics.slice(0, 10)) {
     inferred.push({
       label: demo.type,
       value: `${demo.value} (${demo.advertiserCount} advertisers)`,
@@ -486,24 +502,26 @@ export function buildShadowProfile(archive: ParsedArchive): ShadowProfile {
     });
   }
 
-  // Count unconfirmed interests by checking against tweet/like text
+  // Count unconfirmed interests using the rigorous matcher (the previous
+  // implementation used naive substring `.includes(name)` which under-counted
+  // multi-word interests as confirmed whenever the full phrase appeared
+  // anywhere — but never bothered with token-level matching).
   let unconfirmedInterestCount = 0;
   const totalInterestCount = p?.interests.length ?? 0;
 
-  if (p?.interests && p.interests.length > 0 && archive.tweets.length > 0) {
-    const tweetText = archive.tweets
-      .map((t) => t.fullText.toLowerCase())
-      .join(" ");
-    const likeText = archive.likes
-      .map((l) => (l.fullText ?? "").toLowerCase())
-      .join(" ");
-    const corpus = tweetText + " " + likeText;
+  if (
+    p?.interests &&
+    p.interests.length > 0 &&
+    (archive.tweets.length > 0 || archive.likes.length > 0)
+  ) {
+    const tweetCorpus = buildCorpus(archive.tweets.map((t) => t.fullText));
+    const likeCorpus = buildCorpus(archive.likes.map((l) => l.fullText));
 
     for (const interest of p.interests) {
-      const normalized = interest.name.toLowerCase();
-      if (!corpus.includes(normalized)) {
-        unconfirmedInterestCount++;
-      }
+      const confirmed =
+        isInterestConfirmed(interest.name, tweetCorpus) ||
+        isInterestConfirmed(interest.name, likeCorpus);
+      if (!confirmed) unconfirmedInterestCount++;
     }
   }
 
@@ -519,7 +537,7 @@ export function buildShadowProfile(archive: ParsedArchive): ShadowProfile {
       explicitCount > 0
         ? Math.round((inferredCount / explicitCount) * 10) / 10
         : inferredCount,
-    hiddenDemographics,
+    advertiserDemographics,
     unconfirmedInterestCount,
     totalInterestCount,
   };

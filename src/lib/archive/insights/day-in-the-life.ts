@@ -41,17 +41,21 @@ export interface DayInTheLife {
   readonly date: string;
   /** Formatted date for display ("March 14, 2024"). */
   readonly dateFormatted: string;
-  /** All events on that day, sorted chronologically. */
+  /** Events on that day, sorted chronologically. May be truncated for rendering. */
   readonly events: readonly DayEvent[];
-  /** Event counts by kind. */
+  /** Event counts by kind (computed from the *full* day, not the truncated list). */
   readonly breakdown: Readonly<Record<DayEventKind, number>>;
-  /** Total events X recorded on this day. */
+  /** Total events X recorded on this day (always the full count). */
   readonly totalEvents: number;
+  /** Whether `events` was truncated below `totalEvents` for rendering. */
+  readonly isEventListTruncated: boolean;
   /** The busiest hour of the day. */
   readonly peakHour: number;
   /** Number of different data categories active this day. */
   readonly activeSources: number;
 }
+
+const MAX_RENDERED_EVENTS = 200;
 
 // --- Helpers ----------------------------------------------------------------
 
@@ -265,9 +269,10 @@ export function buildDayInTheLife(archive: ParsedArchive): DayInTheLife | null {
   return {
     date: bestDay,
     dateFormatted,
-    events: dayEvents.slice(0, 200), // Cap at 200 for rendering sanity
+    events: dayEvents.slice(0, MAX_RENDERED_EVENTS),
     breakdown,
     totalEvents: dayEvents.length,
+    isEventListTruncated: dayEvents.length > MAX_RENDERED_EVENTS,
     peakHour,
     activeSources,
   };

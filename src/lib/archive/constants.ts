@@ -21,9 +21,6 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Highlights",
     items: [
       { id: "top-findings", label: "Top Findings" },
-      { id: "the-receipts", label: "The Receipts" },
-      { id: "data-fate", label: "If You Left Today" },
-      { id: "algorithmic-mirror", label: "X Thinks You Are…" },
       {
         id: "ad-price-tag",
         label: "Your Ad Price Tag",
@@ -31,10 +28,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       { id: "wrapped", label: "Your X, Wrapped", dataKey: "tweets" },
       { id: "ghost-data", label: "Ghost Data" },
-      { id: "x-vs-reality", label: "X's Version vs. Reality" },
       { id: "day-in-the-life", label: "A Day In The Life" },
-      { id: "cross-references", label: "Cross References" },
-      { id: "search-surveillance", label: "Search Your Data" },
     ],
   },
   {

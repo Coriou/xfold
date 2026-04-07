@@ -147,6 +147,14 @@ export default function DayInTheLife({ archive }: DayInTheLifeProps) {
           })}
       </div>
 
+      {/* Truncation notice */}
+      {data.isEventListTruncated && (
+        <div className="mb-4 rounded-lg border border-border bg-background-raised px-4 py-2 text-xs text-foreground-muted">
+          Showing the first {data.events.length.toLocaleString()} of{" "}
+          {data.totalEvents.toLocaleString()} events for this day.
+        </div>
+      )}
+
       {/* Timeline */}
       <div className="space-y-1">
         {sortedHours.map((hour) => {

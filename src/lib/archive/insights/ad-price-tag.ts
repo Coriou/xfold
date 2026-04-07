@@ -2,13 +2,21 @@
 // Ad Price Tag — "What you're worth to advertisers"
 // ---------------------------------------------------------------------------
 //
-// Estimates the ad revenue X earned from impressions shown to this user,
-// using public CPM (cost per thousand impressions) benchmarks by targeting
-// type. More sophisticated targeting costs more.
+// IMPORTANT: every monetary number in this module is an ESTIMATE, not a
+// fact. X never publishes per-user revenue; we model it from publicly
+// reported CPM ranges (cost per thousand impressions) by targeting type.
+// All consumer UI built on top of this should label the numbers as
+// "estimated" and ideally show a confidence range, because the underlying
+// CPM table can be off by ±50% depending on advertiser, season, and
+// auction dynamics.
 //
-// The estimate is intentionally conservative — it only counts what's in
-// the archive. Real revenue is higher since the archive only covers a
-// window of time and misses programmatic/exchange inventory.
+// CPM source: published estimates from third-party ad-buying analyses
+// (HubSpot, WebFX, AdExpresso reports 2023-2024). These are mid-range
+// guesses for the *category*, not X-specific rate cards.
+//
+// The model is intentionally conservative on coverage — it only counts
+// what's in the archive. Real revenue is higher since the archive misses
+// programmatic exchange inventory and only covers a time window.
 // ---------------------------------------------------------------------------
 
 import type { ParsedArchive } from "@/lib/archive/types";
@@ -18,23 +26,27 @@ import { buildAdvertiserStats } from "./advertiser-stats";
 // --- Types ------------------------------------------------------------------
 
 export interface AdPriceTag {
-  /** Total estimated revenue in USD. */
+  /** Estimated total revenue in USD (mid-point of the CPM model). */
   readonly estimatedRevenue: number;
-  /** Revenue per year on X. */
+  /** Conservative low end of the revenue estimate (CPM × 0.5). */
+  readonly estimatedRevenueLow: number;
+  /** Aggressive high end of the revenue estimate (CPM × 1.5). */
+  readonly estimatedRevenueHigh: number;
+  /** Estimated revenue per year on X (mid-point). */
   readonly revenuePerYear: number;
-  /** Revenue per day (averaged). */
+  /** Estimated revenue per day, averaged (mid-point). */
   readonly revenuePerDay: number;
-  /** Total impressions counted. */
+  /** Total impressions counted (this is an exact count, not an estimate). */
   readonly totalImpressions: number;
-  /** Total engagements. */
+  /** Total engagements (exact count). */
   readonly totalEngagements: number;
-  /** Unique advertisers. */
+  /** Unique advertisers (exact count). */
   readonly uniqueAdvertisers: number;
   /** The most expensive targeting method used on this user. */
   readonly mostExpensiveMethod: TargetingMethodValue | null;
   /** Breakdown by targeting type with estimated cost. */
   readonly methodBreakdown: readonly TargetingMethodValue[];
-  /** The single advertiser that spent the most on reaching this user. */
+  /** The single advertiser that drove the most impressions toward this user. */
   readonly biggestSpender: BiggestSpender | null;
   /** How many years of data this estimate covers. */
   readonly yearsOfData: number;
@@ -223,6 +235,8 @@ export function buildAdPriceTag(archive: ParsedArchive): AdPriceTag | null {
 
   return {
     estimatedRevenue,
+    estimatedRevenueLow: estimatedRevenue * 0.5,
+    estimatedRevenueHigh: estimatedRevenue * 1.5,
     revenuePerYear,
     revenuePerDay,
     totalImpressions,

@@ -1,17 +1,19 @@
 // ---------------------------------------------------------------------------
-// Accuracy Audit — how wrong is X's profile of you?
+// Accuracy Audit — how much of X's profile is grounded in your real content?
 // ---------------------------------------------------------------------------
 //
 // Cross-references X's inferred interests against actual user behavior
 // (tweets, likes) and ad targeting to assign each interest a verdict:
 //
-//   ✅ Confirmed — user discussed this topic in tweets/likes
-//   ❌ Wrong     — zero evidence in behavior, X just guessed
-//   ⚠️ Bought    — came from a data broker (partner interest), unverifiable
-//   ❓ Unknown   — from ad targeting only, can't confirm or deny
+//   ✅ Confirmed   — interest appears in tweets/likes (phrase or all-tokens match)
+//   ❌ Unconfirmed — no behavioral evidence; X inferred this on its own
+//   ⚠️ Bought      — came from a data broker (partner interest), unverifiable
 //
-// The key stat: "X got N% of your interests wrong" — the headline number
-// that makes this card shareable.
+// The headline rate is `confirmed / total` — the share of X's profile that
+// the user's *own* writing actually supports. Note: we report this as
+// "share of inferences with evidence", NOT as "X's accuracy", because the
+// absence of a topic in your tweets doesn't strictly mean X is wrong about
+// you (you may simply not tweet about every interest you have).
 // ---------------------------------------------------------------------------
 
 import type { ParsedArchive } from "@/lib/archive/types";
@@ -23,7 +25,7 @@ import {
 
 // --- Types ------------------------------------------------------------------
 
-export type AccuracyVerdict = "confirmed" | "wrong" | "bought" | "unknown";
+export type AccuracyVerdict = "confirmed" | "unconfirmed" | "bought";
 
 export interface AuditedInterest {
   /** Interest name as X labeled it. */
@@ -41,15 +43,18 @@ export interface AccuracyAuditResult {
   readonly totalAudited: number;
   /** Counts per verdict. */
   readonly confirmedCount: number;
-  readonly wrongCount: number;
+  /** Interests with no behavioral evidence in tweets/likes. */
+  readonly unconfirmedCount: number;
+  /** Interests sourced from third-party data brokers (cannot self-verify). */
   readonly boughtCount: number;
-  readonly unknownCount: number;
-  /** Accuracy rate: confirmed / (confirmed + wrong) as 0–100 */
-  readonly accuracyPercent: number;
-  /** The inverse — how wrong X is — as a whole number. */
-  readonly wrongPercent: number;
-  /** Top 5 wrong interests (good for display). */
-  readonly topWrong: readonly AuditedInterest[];
+  /** Share of interests with behavioral evidence (0–100). */
+  readonly confirmedPercent: number;
+  /** Share without evidence (0–100). */
+  readonly unconfirmedPercent: number;
+  /** Share from data brokers (0–100). */
+  readonly boughtPercent: number;
+  /** Top 5 unconfirmed interests with the most ad impressions. */
+  readonly topUnconfirmed: readonly AuditedInterest[];
   /** Top 5 confirmed interests (for balance). */
   readonly topConfirmed: readonly AuditedInterest[];
   /** Top 3 data-broker interests. */
@@ -66,12 +71,14 @@ export function buildAccuracyAudit(
   const interests = archive.personalization?.interests;
   if (!interests || interests.length < 5) return null;
 
-  // Build behavior corpora
+  // Build behavior corpora (a single pass; expensive on huge archives)
   const tweetCorpus = buildCorpus(archive.tweets.map((t) => t.fullText));
   const likeCorpus = buildCorpus(archive.likes.map((l) => l.fullText));
 
   // We need at least some behavior data to make verdicts meaningful
-  if (tweetCorpus.length < 100 && likeCorpus.length < 100) return null;
+  if (tweetCorpus.text.length < 100 && likeCorpus.text.length < 100) {
+    return null;
+  }
 
   // Build ad targeting counts
   const adTargetingCounts = buildAdTargetingCounts(
@@ -101,8 +108,7 @@ export function buildAccuracyAudit(
     } else if (brokerInterests.has(m.name.toLowerCase())) {
       verdict = "bought";
     } else {
-      // No behavior evidence — X just guessed (or advertisers assumed)
-      verdict = "wrong";
+      verdict = "unconfirmed";
     }
 
     return {
@@ -116,18 +122,25 @@ export function buildAccuracyAudit(
   const confirmedCount = entries.filter(
     (e) => e.verdict === "confirmed",
   ).length;
-  const wrongCount = entries.filter((e) => e.verdict === "wrong").length;
+  const unconfirmedCount = entries.filter(
+    (e) => e.verdict === "unconfirmed",
+  ).length;
   const boughtCount = entries.filter((e) => e.verdict === "bought").length;
-  const unknownCount = entries.filter((e) => e.verdict === "unknown").length;
+  const total = entries.length;
 
-  const verifiable = confirmedCount + wrongCount;
-  const accuracyPercent =
-    verifiable > 0 ? Math.round((confirmedCount / verifiable) * 100) : 0;
-  const wrongPercent = verifiable > 0 ? 100 - accuracyPercent : 0;
+  // All three rates use the *full* total as denominator. The previous
+  // implementation used (confirmed + wrong) which made e.g. 40 / 50
+  // unconfirmed look like "80 % accurate" while ignoring the broker pile.
+  const confirmedPercent =
+    total > 0 ? Math.round((confirmedCount / total) * 100) : 0;
+  const unconfirmedPercent =
+    total > 0 ? Math.round((unconfirmedCount / total) * 100) : 0;
+  const boughtPercent =
+    total > 0 ? Math.round((boughtCount / total) * 100) : 0;
 
-  // Sort for top lists: wrong with most ad impressions first (most outrageous)
-  const wrongEntries = entries
-    .filter((e) => e.verdict === "wrong")
+  // Sort for top lists: unconfirmed with most ad impressions first
+  const unconfirmedEntries = entries
+    .filter((e) => e.verdict === "unconfirmed")
     .sort((a, b) => b.adImpressions - a.adImpressions);
 
   const confirmedEntries = entries
@@ -139,14 +152,14 @@ export function buildAccuracyAudit(
     .sort((a, b) => b.adImpressions - a.adImpressions);
 
   return {
-    totalAudited: entries.length,
+    totalAudited: total,
     confirmedCount,
-    wrongCount,
+    unconfirmedCount,
     boughtCount,
-    unknownCount,
-    accuracyPercent,
-    wrongPercent,
-    topWrong: wrongEntries.slice(0, 5),
+    confirmedPercent,
+    unconfirmedPercent,
+    boughtPercent,
+    topUnconfirmed: unconfirmedEntries.slice(0, 5),
     topConfirmed: confirmedEntries.slice(0, 5),
     topBought: boughtEntries.slice(0, 3),
     entries,

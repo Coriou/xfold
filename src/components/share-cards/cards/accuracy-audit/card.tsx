@@ -20,8 +20,8 @@ export function AccuracyAuditCard(props: AccuracyAuditCardProps) {
           alignItems: "center",
         }}
       >
-        {/* Big wrong percentage */}
-        <BigNumber value={`${props.wrongPercent}%`} color={brand.danger} />
+        {/* Big unconfirmed percentage */}
+        <BigNumber value={`${props.unconfirmedPercent}%`} color={brand.danger} />
         <div
           style={{
             fontSize: 24,
@@ -31,7 +31,7 @@ export function AccuracyAuditCard(props: AccuracyAuditCardProps) {
             marginTop: 12,
           }}
         >
-          of X&apos;s guesses about me are wrong
+          of X&apos;s guesses have no evidence in my tweets
         </div>
 
         {/* Stats row */}
@@ -60,10 +60,10 @@ export function AccuracyAuditCard(props: AccuracyAuditCardProps) {
                 color: brand.danger,
               }}
             >
-              {props.wrongCount}
+              {props.unconfirmedCount}
             </div>
             <div style={{ fontSize: 14, color: brand.foregroundMuted }}>
-              wrong
+              unconfirmed
             </div>
           </div>
           <div
@@ -86,7 +86,7 @@ export function AccuracyAuditCard(props: AccuracyAuditCardProps) {
               {props.confirmedCount}
             </div>
             <div style={{ fontSize: 14, color: brand.foregroundMuted }}>
-              right
+              confirmed
             </div>
           </div>
           {props.boughtCount > 0 && (
@@ -116,8 +116,8 @@ export function AccuracyAuditCard(props: AccuracyAuditCardProps) {
           )}
         </div>
 
-        {/* Wrong examples */}
-        {props.wrongExamples.length > 0 && (
+        {/* Unconfirmed examples */}
+        {props.unconfirmedExamples.length > 0 && (
           <div
             style={{
               marginTop: 24,
@@ -133,7 +133,7 @@ export function AccuracyAuditCard(props: AccuracyAuditCardProps) {
                 marginBottom: 10,
               }}
             >
-              X THINKS I LIKE:
+              X THINKS I&apos;M INTO:
             </div>
             <div
               style={{
@@ -142,7 +142,7 @@ export function AccuracyAuditCard(props: AccuracyAuditCardProps) {
                 gap: 8,
               }}
             >
-              {props.wrongExamples.map((name) => (
+              {props.unconfirmedExamples.map((name) => (
                 <span
                   key={name}
                   style={{
@@ -215,7 +215,7 @@ export function AccuracyAuditCard(props: AccuracyAuditCardProps) {
             lineHeight: 1.5,
           }}
         >
-          Audited {props.totalAudited} interests against your actual tweets and
+          Audited {props.totalAudited} interests against my actual tweets and
           likes.
         </div>
       </div>

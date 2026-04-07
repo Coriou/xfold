@@ -26,39 +26,27 @@ import { pipelineCard } from "./cards/pipeline";
 import { xguessesCard } from "./cards/xguesses";
 import { dataBetrayalCard } from "./cards/data-betrayal";
 import { reportCardCard } from "./cards/report-card";
-import { algorithmicMirrorCard } from "./cards/algorithmic-mirror";
 import { adPriceTagCard } from "./cards/ad-price-tag";
 import { zombieInterestsCard } from "./cards/zombie-interests";
 import { deletionLieCard } from "./cards/deletion-lie";
 import { brokerLabelCard } from "./cards/broker-label";
 import { prospectusCard } from "./cards/prospectus";
-import { plainEnglishCard } from "./cards/plain-english";
 import { surveillanceTimelineCard } from "./cards/surveillance-timeline";
 import { xErasCard } from "./cards/x-eras";
-import { betrayalStackCard } from "./cards/betrayal-stack";
 import { accuracyAuditCard } from "./cards/accuracy-audit";
 import { topFindingCard } from "./cards/top-finding";
 import { securityAuditCard } from "./cards/security-audit";
 import { erosionCard } from "./cards/erosion";
 import { benchmarkCard } from "./cards/benchmark";
-import { dataFateCard } from "./cards/data-fate";
-import { confessionCard } from "./cards/confession";
 import { compareCTACard } from "./cards/compare-cta";
-import { xVsRealityCard } from "./cards/x-vs-reality-card";
 import { dayInTheLifeCard } from "./cards/day-in-the-life-card";
 
 export const SHARE_CARDS: readonly RegisteredShareCard[] = [
-  defineShareCard(confessionCard),
-  defineShareCard(dataFateCard),
   defineShareCard(topFindingCard),
-  defineShareCard(xVsRealityCard),
   defineShareCard(dayInTheLifeCard),
-  defineShareCard(plainEnglishCard),
-  defineShareCard(betrayalStackCard),
   defineShareCard(accuracyAuditCard),
   defineShareCard(surveillanceTimelineCard),
   defineShareCard(xErasCard),
-  defineShareCard(algorithmicMirrorCard),
   defineShareCard(adPriceTagCard),
   defineShareCard(deletedTweetsCard),
   defineShareCard(dataBetrayalCard),

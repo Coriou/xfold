@@ -32,7 +32,7 @@ const SEVERITY_DOT: Record<string, string> = {
   high: "bg-danger",
 } as const;
 
-type Tab = "overview" | "explicit" | "inferred" | "hidden-demographics";
+type Tab = "overview" | "explicit" | "inferred" | "advertiser-demographics";
 
 export default function ShadowProfile({ archive }: { archive: ParsedArchive }) {
   const shadow = useMemo(() => buildShadowProfile(archive), [archive]);
@@ -128,9 +128,9 @@ export default function ShadowProfile({ archive }: { archive: ParsedArchive }) {
           variant={shadow.inferredRatio > 3 ? "danger" : "accent"}
         />
         <StatCard
-          label="Hidden demographics"
-          value={shadow.hiddenDemographics.length}
-          variant={shadow.hiddenDemographics.length > 5 ? "danger" : "default"}
+          label="Advertiser-visible inferences"
+          value={shadow.advertiserDemographics.length}
+          variant={shadow.advertiserDemographics.length > 5 ? "danger" : "default"}
         />
       </div>
 
@@ -142,8 +142,8 @@ export default function ShadowProfile({ archive }: { archive: ParsedArchive }) {
             ["explicit", `You Shared (${shadow.explicitCount})`],
             ["inferred", `X Inferred (${shadow.inferredCount})`],
             [
-              "hidden-demographics",
-              `Hidden Demographics (${shadow.hiddenDemographics.length})`,
+              "advertiser-demographics",
+              `Advertiser-Visible (${shadow.advertiserDemographics.length})`,
             ],
           ] as const
         ).map(([id, label]) => (
@@ -191,8 +191,10 @@ export default function ShadowProfile({ archive }: { archive: ParsedArchive }) {
           )}
         </div>
       )}
-      {tab === "hidden-demographics" && (
-        <HiddenDemographicsView demographics={shadow.hiddenDemographics} />
+      {tab === "advertiser-demographics" && (
+        <AdvertiserDemographicsView
+          demographics={shadow.advertiserDemographics}
+        />
       )}
     </div>
   );
@@ -305,7 +307,7 @@ function EntryCard({ entry }: { entry: ShadowProfileEntry }) {
   );
 }
 
-function HiddenDemographicsView({
+function AdvertiserDemographicsView({
   demographics,
 }: {
   demographics: readonly {
@@ -317,7 +319,7 @@ function HiddenDemographicsView({
   if (demographics.length === 0) {
     return (
       <EmptyState
-        title="No hidden demographics"
+        title="No advertiser-visible inferences"
         description="No demographic targeting criteria found beyond what's shown in your personalization data."
       />
     );
@@ -328,9 +330,9 @@ function HiddenDemographicsView({
       <div className="mb-4 rounded-xl border border-accent/30 bg-accent/5 p-4">
         <p className="text-sm text-foreground-muted">
           These demographic categories don&apos;t appear in your personalization
-          settings — they&apos;re only visible as ad-targeting criteria.
-          Advertisers used them to reach you, which means X assigned them to
-          your profile behind the scenes.
+          settings — they&apos;re only visible to advertisers as ad-targeting
+          criteria. X assigned them behind the scenes and made them available
+          to anyone bidding on impressions.
         </p>
       </div>
 

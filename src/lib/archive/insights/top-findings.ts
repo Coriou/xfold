@@ -16,8 +16,10 @@
 
 import type { ParsedArchive } from "@/lib/archive/types";
 import { parseDate } from "@/lib/format";
-import { buildDmAdCorrelation } from "./dm-ad-correlation";
-import { buildGrokDeletedCorrelation } from "./grok-deleted-correlation";
+import {
+  buildCorpus,
+  isInterestConfirmed,
+} from "@/lib/archive/interest-matching";
 
 // --- Types ------------------------------------------------------------------
 
@@ -317,35 +319,36 @@ function findInferenceAccuracy(archive: ParsedArchive): TopFinding | null {
   if (!p) return null;
   if (p.interests.length < 10) return null;
 
-  // Build a lightweight tweet corpus for matching
-  const corpusWords = new Set<string>();
-  for (const t of archive.tweets) {
-    for (const word of t.fullText.toLowerCase().split(/\s+/)) {
-      if (word.length >= 4) corpusWords.add(word);
-    }
-  }
+  // Use the same rigorous matching as accuracy-audit so the headline here
+  // and the dedicated section never disagree. The previous implementation
+  // used "any 4-char token is a substring", which over-confirmed badly.
+  const tweetCorpus = buildCorpus(archive.tweets.map((t) => t.fullText));
 
   let confirmed = 0;
   let unconfirmed = 0;
   for (const interest of p.interests) {
-    const tokens = interest.name
-      .toLowerCase()
-      .split(/[\s&/,()-]+/)
-      .filter((t) => t.length >= 4);
-    const found = tokens.some((token) => corpusWords.has(token));
-    if (found) confirmed++;
-    else unconfirmed++;
+    if (isInterestConfirmed(interest.name, tweetCorpus)) {
+      confirmed++;
+    } else {
+      unconfirmed++;
+    }
   }
 
-  const accuracy = pct(confirmed, p.interests.length);
-  if (accuracy > 80) return null; // Mostly accurate, not shocking
+  const confirmedPercent = pct(confirmed, p.interests.length);
+  if (confirmedPercent > 60) return null; // Mostly grounded, not shocking
+  const unconfirmedPercent = 100 - confirmedPercent;
 
   return {
     id: "inference-accuracy",
-    hook: `X inferred ${fmt(p.interests.length)} interests about you — only ${accuracy}% match what you actually tweet about.`,
-    detail: `${fmt(unconfirmed)} interests are guesses with no basis in your public activity, yet advertisers pay to target them.`,
-    severity: accuracy < 40 ? "critical" : accuracy < 60 ? "high" : "medium",
-    shockScore: Math.min(82, 90 - accuracy),
+    hook: `X assigned ${fmt(p.interests.length)} interests to you — only ${confirmedPercent}% appear in anything you've actually tweeted.`,
+    detail: `${fmt(unconfirmed)} interests have no behavioral evidence in your public activity, yet advertisers paid to target them.`,
+    severity:
+      confirmedPercent < 20
+        ? "critical"
+        : confirmedPercent < 40
+          ? "high"
+          : "medium",
+    shockScore: Math.min(82, 30 + unconfirmedPercent / 2),
     sectionId: "ad-profile",
     category: "Profiling",
     action: {
@@ -430,10 +433,13 @@ function findConnectedAppRisk(archive: ParsedArchive): TopFinding | null {
 
   if (writeApps.length === 0 && apps.length < 5) return null;
 
+  // Caveat: the archive lists every app the user has *ever* authorized.
+  // It does not include revocation timestamps, so we can't tell which
+  // are still active vs. long-revoked. Frame the claim accordingly.
   const hook =
     writeApps.length > 0
-      ? `${fmt(apps.length)} third-party apps have access to your X account — ${fmt(writeApps.length)} can post tweets or read DMs on your behalf.`
-      : `${fmt(apps.length)} third-party apps have been granted access to your X account.`;
+      ? `You've authorized ${fmt(apps.length)} third-party apps over time — ${fmt(writeApps.length)} were granted permission to post tweets or read DMs.`
+      : `You've authorized ${fmt(apps.length)} third-party apps to access your X account.`;
 
   return {
     id: "connected-apps",
@@ -445,8 +451,8 @@ function findConnectedAppRisk(archive: ParsedArchive): TopFinding | null {
             .map((a) => a.name)
             .join(
               ", ",
-            )}${writeApps.length > 3 ? `, +${writeApps.length - 3} more` : ""}.`
-        : `Each connected app can read your profile, tweets, and follower lists.`,
+            )}${writeApps.length > 3 ? `, +${writeApps.length - 3} more` : ""}. The archive doesn't record revocations — review the live list to see which are still active.`
+        : `Each connected app could read your profile, tweets, and follower lists. The archive doesn't track which authorizations you've since revoked — check the live settings.`,
     severity:
       writeApps.length > 2
         ? "critical"
@@ -567,63 +573,6 @@ function findPrivacyErosion(archive: ParsedArchive): TopFinding | null {
   };
 }
 
-function findDmAdCorrelation(archive: ParsedArchive): TopFinding | null {
-  const correlation = buildDmAdCorrelation(archive);
-  if (!correlation || correlation.overlapCount < 3) return null;
-
-  const suspicious = correlation.matches.filter((m) => m.adFollowedDm).length;
-
-  const hook =
-    suspicious > 0
-      ? `${fmt(correlation.overlapCount)} topics from your private DMs also appear in your ad targeting — ${fmt(suspicious)} times the ad appeared AFTER your conversation.`
-      : `${fmt(correlation.overlapCount)} topics you discussed in DMs also appear in your ad targeting profile.`;
-
-  return {
-    id: "dm-ad-correlation",
-    hook,
-    detail: `X says DMs are private. Yet ${fmt(correlation.overlapCount)} keywords from your private messages match ad targeting criteria used against you.`,
-    severity: suspicious > 3 ? "critical" : suspicious > 0 ? "high" : "medium",
-    shockScore: Math.min(
-      92,
-      45 + correlation.overlapCount * 3 + suspicious * 8,
-    ),
-    sectionId: "cross-references",
-    category: "Cross-domain tracking",
-    action: null,
-  };
-}
-
-function findGrokDeletedConnection(archive: ParsedArchive): TopFinding | null {
-  const correlation = buildGrokDeletedCorrelation(archive);
-  if (!correlation || correlation.overlapCount < 2) return null;
-
-  const afterDeletion = correlation.matches.filter(
-    (m) => m.grokAfterDeletion,
-  ).length;
-
-  const hook =
-    afterDeletion > 0
-      ? `You asked Grok about ${fmt(afterDeletion)} topics you also deleted tweets about. X has the deleted content AND proof you were worried about it.`
-      : `${fmt(correlation.overlapCount)} topics overlap between your Grok conversations and deleted tweets. X keeps both.`;
-
-  return {
-    id: "grok-deleted-overlap",
-    hook,
-    detail:
-      afterDeletion > 0
-        ? `In ${fmt(afterDeletion)} cases, you asked Grok AFTER deleting tweets on the same topic — a digital paper trail of what you tried to hide.`
-        : `Cross-referencing Grok conversations with deleted tweets reveals overlapping topics X stores alongside your real identity.`,
-    severity: afterDeletion > 2 ? "critical" : "high",
-    shockScore: Math.min(
-      90,
-      50 + correlation.overlapCount * 5 + afterDeletion * 10,
-    ),
-    sectionId: "cross-references",
-    category: "AI + Privacy",
-    action: null,
-  };
-}
-
 // --- Main -------------------------------------------------------------------
 
 export function computeTopFindings(archive: ParsedArchive): TopFinding[] {
@@ -640,8 +589,6 @@ export function computeTopFindings(archive: ParsedArchive): TopFinding[] {
     findConnectedAppRisk,
     findBulkDeletionPattern,
     findPrivacyErosion,
-    findDmAdCorrelation,
-    findGrokDeletedConnection,
   ];
 
   const findings: TopFinding[] = [];

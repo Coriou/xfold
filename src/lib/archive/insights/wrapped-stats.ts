@@ -99,11 +99,15 @@ function computeBreakdown(archive: ParsedArchive): TweetTypeBreakdown {
   }
   const total = original + reply + retweet;
 
+  // Persona = whichever category has the strict maximum.
+  // Tie-break: original > retweet > reply (a tied user is "more broadcast"
+  // than "more conversational" — only commit to Conversationalist when
+  // replies *clearly* dominate).
   let persona: Persona = "Broadcaster";
   if (total > 0) {
-    if (reply >= original && reply >= retweet) persona = "Conversationalist";
-    else if (retweet > original) persona = "Curator";
-    else persona = "Broadcaster";
+    if (original >= retweet && original >= reply) persona = "Broadcaster";
+    else if (retweet >= reply) persona = "Curator";
+    else persona = "Conversationalist";
   }
 
   return { original, reply, retweet, total, persona };

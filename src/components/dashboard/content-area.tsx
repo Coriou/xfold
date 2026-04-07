@@ -15,9 +15,6 @@ const SECTION_MAP: Record<
   string,
   React.LazyExoticComponent<SectionComponent>
 > = {
-  "algorithmic-mirror": lazy(
-    () => import("@/components/sections/algorithmic-mirror"),
-  ),
   "ad-price-tag": lazy(() => import("@/components/sections/ad-price-tag")),
   wrapped: lazy(() => import("@/components/sections/wrapped")),
   overview: lazy(() => import("@/components/sections/overview")),
@@ -56,17 +53,8 @@ const SECTION_MAP: Record<
   ),
   "grok-insights": lazy(() => import("@/components/sections/grok-insights")),
   benchmarks: lazy(() => import("@/components/sections/benchmarks")),
-  "data-fate": lazy(() => import("@/components/sections/data-fate")),
-  "the-receipts": lazy(() => import("@/components/sections/the-receipts")),
-  "x-vs-reality": lazy(() => import("@/components/sections/x-vs-reality")),
   "day-in-the-life": lazy(
     () => import("@/components/sections/day-in-the-life"),
-  ),
-  "cross-references": lazy(
-    () => import("@/components/sections/cross-references"),
-  ),
-  "search-surveillance": lazy(
-    () => import("@/components/sections/search-surveillance"),
   ),
 };
 

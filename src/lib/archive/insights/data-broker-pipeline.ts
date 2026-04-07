@@ -14,7 +14,11 @@
 // ---------------------------------------------------------------------------
 
 import type { ParsedArchive } from "@/lib/archive/types";
-import { buildCorpus, tokenizeInterest } from "@/lib/archive/interest-matching";
+import {
+  buildCorpus,
+  isInterestConfirmed,
+  tokenizeInterest,
+} from "@/lib/archive/interest-matching";
 
 // --- Types ------------------------------------------------------------------
 
@@ -133,10 +137,12 @@ export function buildDataBrokerPipeline(
   for (const label of partnerInterests) {
     const tokens = tokenizeInterest(label);
 
-    // Behavior check
+    // Behavior check — uses the rigorous phrase/all-tokens matcher rather
+    // than naive substring inclusion (which mis-matched "Machine Learning"
+    // against "machine politics"). Same fix as accuracy-audit.
     const confirmedByBehavior =
-      tokens.some((t) => tweetCorpus.includes(t)) ||
-      tokens.some((t) => likeCorpus.includes(t));
+      isInterestConfirmed(label, tweetCorpus) ||
+      isInterestConfirmed(label, likeCorpus);
 
     // Ad targeting check
     const lower = label.toLowerCase();

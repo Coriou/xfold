@@ -7,27 +7,43 @@
 // disabled interests against ad targeting criteria to expose "zombie"
 // interests that should be dead but are still driving ad revenue.
 //
-// Data sources crossed:
-//   1. Personalization interests with isDisabled = true
-//   2. Ad impressions/engagements targeting criteria (who still used them?)
-//   3. Tweet/like corpus (did the user ever even mention it?)
+// We're conservative on what counts as a zombie:
+//
+//   - The interest must be disabled.
+//   - We only count impressions from the last RECENT_WINDOW_DAYS days
+//     (relative to the archive's generation date — not "now", because the
+//     user might be viewing an old archive). Ads from years ago aren't
+//     evidence of *current* behavior.
+//   - The interest needs at least MIN_IMPRESSIONS recent ad impressions
+//     to be flagged. A single stale ad doesn't make a zombie.
+//
+// These thresholds prevent the "1 stale ad = active zombie" false positive
+// while keeping the headline meaningful for users with real reanimations.
 // ---------------------------------------------------------------------------
 
 import type { ParsedArchive } from "@/lib/archive/types";
 import {
-  buildAdTargetingCounts,
   buildCorpus,
+  isInterestConfirmed,
   tokenizeInterest,
 } from "@/lib/archive/interest-matching";
+import { parseDate } from "@/lib/format";
+
+// --- Constants --------------------------------------------------------------
+
+/** Only count ad impressions within this window of the archive date. */
+const RECENT_WINDOW_DAYS = 90;
+/** A disabled interest needs at least this many recent ads to count. */
+const MIN_IMPRESSIONS = 5;
 
 // --- Types ------------------------------------------------------------------
 
 export interface ZombieInterest {
   /** The interest name as X labeled it. */
   readonly name: string;
-  /** Number of ad impressions that still targeted this disabled interest. */
+  /** Number of *recent* ad impressions that still targeted this interest. */
   readonly adImpressions: number;
-  /** Number of distinct advertisers that used this disabled interest. */
+  /** Number of distinct advertisers that used this disabled interest recently. */
   readonly advertiserCount: number;
   /** Names of top advertisers (up to 3) still targeting this zombie. */
   readonly topAdvertisers: readonly string[];
@@ -38,12 +54,14 @@ export interface ZombieInterest {
 export interface ZombieInterestStats {
   /** Total interests the user disabled. */
   readonly totalDisabled: number;
-  /** Disabled interests that advertisers STILL targeted. */
+  /** Disabled interests that advertisers STILL targeted (after thresholds). */
   readonly zombieCount: number;
-  /** Total ad impressions driven by zombie interests. */
+  /** Total recent ad impressions driven by zombie interests. */
   readonly totalZombieImpressions: number;
-  /** Total unique advertisers that used zombie interests. */
+  /** Total unique advertisers that used zombie interests recently. */
   readonly totalZombieAdvertisers: number;
+  /** Number of days the recency window looks back. */
+  readonly recencyWindowDays: number;
   /** The individual zombie entries, sorted by ad impressions desc. */
   readonly entries: readonly ZombieInterest[];
   /** The single worst zombie — most impressions despite being disabled. */
@@ -52,10 +70,32 @@ export interface ZombieInterestStats {
 
 // --- Helpers ----------------------------------------------------------------
 
-function buildInterestAdvertiserMap(
+/**
+ * Cutoff date for "recent" ads. Anchored to the archive's generation date,
+ * not Date.now() — so loading a 2-year-old archive still gives meaningful
+ * results relative to *that* archive's window.
+ */
+function getRecencyCutoff(archive: ParsedArchive): number {
+  const anchor = parseDate(archive.meta.generationDate)?.getTime() ?? Date.now();
+  return anchor - RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+}
+
+interface InterestAdAccumulator {
+  /** Total recent impressions for this interest target value. */
+  impressions: number;
+  /** Recent advertisers for this interest target value, with impression counts. */
+  advertisers: Map<string, number>;
+}
+
+/**
+ * Build a map of (lowercased interest target value) → recent impression
+ * stats. Only impressions inside the recency window count.
+ */
+function buildRecentInterestAdMap(
   archive: ParsedArchive,
-): Map<string, Map<string, number>> {
-  const map = new Map<string, Map<string, number>>();
+  recencyCutoffMs: number,
+): Map<string, InterestAdAccumulator> {
+  const map = new Map<string, InterestAdAccumulator>();
 
   function process(
     targetingCriteria: readonly {
@@ -63,31 +103,41 @@ function buildInterestAdvertiserMap(
       targetingValue: string | null;
     }[],
     advertiser: string,
+    impressionTime: string,
   ) {
+    const d = parseDate(impressionTime);
+    if (!d) return;
+    if (d.getTime() < recencyCutoffMs) return;
+
     for (const tc of targetingCriteria) {
       if (
-        tc.targetingValue &&
-        tc.targetingType.toLowerCase().includes("interest")
+        !tc.targetingValue ||
+        !tc.targetingType.toLowerCase().includes("interest")
       ) {
-        const key = tc.targetingValue.toLowerCase();
-        let advMap = map.get(key);
-        if (!advMap) {
-          advMap = new Map();
-          map.set(key, advMap);
-        }
-        advMap.set(advertiser, (advMap.get(advertiser) ?? 0) + 1);
+        continue;
       }
+      const key = tc.targetingValue.toLowerCase();
+      let acc = map.get(key);
+      if (!acc) {
+        acc = { impressions: 0, advertisers: new Map() };
+        map.set(key, acc);
+      }
+      acc.impressions += 1;
+      acc.advertisers.set(
+        advertiser,
+        (acc.advertisers.get(advertiser) ?? 0) + 1,
+      );
     }
   }
 
   for (const batch of archive.adImpressions) {
     for (const imp of batch.impressions) {
-      process(imp.targetingCriteria, imp.advertiserName);
+      process(imp.targetingCriteria, imp.advertiserName, imp.impressionTime);
     }
   }
   for (const batch of archive.adEngagements) {
     for (const eng of batch.engagements) {
-      process(eng.targetingCriteria, eng.advertiserName);
+      process(eng.targetingCriteria, eng.advertiserName, eng.impressionTime);
     }
   }
 
@@ -105,17 +155,16 @@ export function buildZombieInterests(
   const disabled = interests.filter((i) => i.isDisabled);
   if (disabled.length === 0) return null;
 
-  // Step 1: Build behavior corpus for confirmation check
+  // Step 1: Behavior corpus (used to mark which zombies the user *did*
+  // tweet about — those are not actually false positives).
   const tweetCorpus = buildCorpus(archive.tweets.map((t) => t.fullText));
   const likeCorpus = buildCorpus(archive.likes.map((l) => l.fullText));
 
-  // Step 2: Build ad targeting counts and advertiser map
-  const adTargetingCounts = buildAdTargetingCounts(
-    archive.adImpressions.flatMap((b) => b.impressions),
-  );
-  const advertiserMap = buildInterestAdvertiserMap(archive);
+  // Step 2: Recent-ad map for impression + advertiser lookups
+  const recencyCutoffMs = getRecencyCutoff(archive);
+  const recentAdMap = buildRecentInterestAdMap(archive, recencyCutoffMs);
 
-  // Step 3: Assemble zombie entries
+  // Step 3: Walk every disabled interest, look up its recent activity
   const entries: ZombieInterest[] = [];
   const allZombieAdvertisers = new Set<string>();
 
@@ -123,57 +172,42 @@ export function buildZombieInterests(
     const lower = interest.name.toLowerCase();
     const tokens = tokenizeInterest(interest.name);
 
-    // Ad impression count — try exact match then tokens
-    let adImpressions = adTargetingCounts.get(lower) ?? 0;
-    if (adImpressions === 0) {
-      for (const t of tokens) {
-        const count = adTargetingCounts.get(t) ?? 0;
-        if (count > adImpressions) adImpressions = count;
+    // Find the strongest (impressions, advertisers) match for this interest:
+    // try the exact lowercased name first, then each token. Use the variant
+    // with the most impressions (not the first one — first-match was lossy).
+    let best: InterestAdAccumulator | null = recentAdMap.get(lower) ?? null;
+    for (const t of tokens) {
+      const candidate = recentAdMap.get(t);
+      if (candidate && (!best || candidate.impressions > best.impressions)) {
+        best = candidate;
       }
     }
 
-    // Advertisers — try exact match then tokens
-    let advMap = advertiserMap.get(lower);
-    if (!advMap || advMap.size === 0) {
-      for (const t of tokens) {
-        const tokenMap = advertiserMap.get(t);
-        if (tokenMap && tokenMap.size > 0) {
-          advMap = tokenMap;
-          break;
-        }
-      }
+    if (!best || best.impressions < MIN_IMPRESSIONS) continue;
+
+    const topAdvertisers = [...best.advertisers.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name]) => name);
+
+    for (const name of best.advertisers.keys()) {
+      allZombieAdvertisers.add(name);
     }
 
-    const advertiserCount = advMap?.size ?? 0;
-    const topAdvertisers = advMap
-      ? [...advMap.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
-          .map(([name]) => name)
-      : [];
-
-    // Track global zombie advertisers
-    if (advMap) {
-      for (const name of advMap.keys()) allZombieAdvertisers.add(name);
-    }
-
-    // Behavior confirmation
     const confirmedByBehavior =
-      tokens.some((t) => tweetCorpus.includes(t)) ||
-      tokens.some((t) => likeCorpus.includes(t));
+      isInterestConfirmed(interest.name, tweetCorpus) ||
+      isInterestConfirmed(interest.name, likeCorpus);
 
-    if (adImpressions > 0) {
-      entries.push({
-        name: interest.name,
-        adImpressions,
-        advertiserCount,
-        topAdvertisers,
-        confirmedByBehavior,
-      });
-    }
+    entries.push({
+      name: interest.name,
+      adImpressions: best.impressions,
+      advertiserCount: best.advertisers.size,
+      topAdvertisers,
+      confirmedByBehavior,
+    });
   }
 
-  // Sort by ad impressions desc
+  // Sort by recent impressions desc
   entries.sort((a, b) => b.adImpressions - a.adImpressions);
 
   const totalZombieImpressions = entries.reduce(
@@ -186,6 +220,7 @@ export function buildZombieInterests(
     zombieCount: entries.length,
     totalZombieImpressions,
     totalZombieAdvertisers: allZombieAdvertisers.size,
+    recencyWindowDays: RECENT_WINDOW_DAYS,
     entries,
     worstZombie: entries[0] ?? null,
   };

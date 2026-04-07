@@ -44,7 +44,7 @@ export function detectGhostData(archive: ParsedArchive): GhostDataCategory[] {
     candidates.push({
       id: "contacts",
       label: "Uploaded Contacts",
-      description: `X has ${contacts.length.toLocaleString()} contacts from your phone's address book — people who never consented.`,
+      description: `X has ${contacts.length.toLocaleString()} contacts from your address book. You may have uploaded these intentionally (sync) or X may have harvested them from sign-up flows — review your address book settings to be sure.`,
       headline: `${contacts.length.toLocaleString()} contacts from your phone`,
       count: contacts.length,
       severity: "critical",
