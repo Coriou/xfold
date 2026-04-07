@@ -36,7 +36,11 @@ export type ShareCardId =
   | "data-betrayal"
   | "report-card"
   | "algorithmic-mirror"
-  | "ad-price-tag";
+  | "ad-price-tag"
+  | "zombie-interests"
+  | "deletion-lie"
+  | "broker-label"
+  | "prospectus";
 
 export type ShareCardCategory =
   | "headline"

@@ -4,6 +4,8 @@ import {
   type QuoteSource,
 } from "@/lib/archive/insights/quote-pool";
 import { buildInterestPipeline } from "@/lib/archive/insights/interest-pipeline";
+import { buildZombieInterests } from "@/lib/archive/insights/zombie-interests";
+import { buildDataBrokerPipeline } from "@/lib/archive/insights/data-broker-pipeline";
 import type { ComputeContext } from "../../types";
 
 export interface ScoreCardReceipt {
@@ -22,7 +24,7 @@ export interface ScoreCardProps {
    * specific can be extracted (very small archives, etc).
    */
   readonly quote: ScoreCardQuote | null;
-  /** Up to 3 cross-domain receipts shown under the score. */
+  /** Up to 5 cross-domain receipts — the "X receipt" format. */
   readonly receipts: readonly ScoreCardReceipt[];
   /** Three short fact-bullets, used as a fallback when no quote is available. */
   readonly bullets: readonly string[];
@@ -54,7 +56,7 @@ function buildReceipts(ctx: ComputeContext): ScoreCardReceipt[] {
   const { archive } = ctx;
   const receipts: ScoreCardReceipt[] = [];
 
-  // Receipt 1: Tracking
+  // Receipt 1: Tracking — unique IPs and networks
   const uniqueIps = new Set(archive.ipAudit.map((e) => e.loginIp)).size;
   const subnets = new Set(
     archive.ipAudit.map((e) => {
@@ -72,7 +74,17 @@ function buildReceipts(ctx: ComputeContext): ScoreCardReceipt[] {
     });
   }
 
-  // Receipt 2: Profiling
+  // Receipt 2: Zombie interests — disabled but still monetized
+  const zombies = buildZombieInterests(archive);
+  if (zombies && zombies.zombieCount > 0) {
+    receipts.push({
+      icon: "\uD83E\uDDDF",
+      text: `${zombies.zombieCount} interests you disabled are still being sold`,
+      severity: zombies.zombieCount > 5 ? "high" : "medium",
+    });
+  }
+
+  // Receipt 3: Profiling — unconfirmed interests
   const pipeline = buildInterestPipeline(archive);
   if (pipeline && pipeline.unconfirmedCount > 0) {
     receipts.push({
@@ -96,26 +108,50 @@ function buildReceipts(ctx: ComputeContext): ScoreCardReceipt[] {
     }
   }
 
-  // Receipt 3: Monetization
+  // Receipt 4: Monetization — advertisers
   const advCount = countUniqueAdvertisers(ctx);
   if (advCount > 0) {
     receipts.push({
       icon: "\uD83D\uDCB0",
-      text: `${advCount} advertisers, $0 paid to you`,
+      text: `${advCount.toLocaleString("en-US")} advertisers targeted you, $0 paid to you`,
       severity: advCount > 200 ? "high" : advCount > 50 ? "medium" : "low",
     });
   }
 
-  // Receipt 4 (fallback): Data retention
-  if (receipts.length < 3 && archive.deletedTweets.length > 0) {
+  // Receipt 5: Data brokers — third-party labels
+  const brokers = buildDataBrokerPipeline(archive);
+  if (brokers && brokers.unconfirmedCount > 0) {
+    receipts.push({
+      icon: "\uD83D\uDD75\uFE0F",
+      text: `${brokers.totalLabels} data broker labels, ${brokers.unconfirmedCount} with no basis`,
+      severity: brokers.unconfirmedButTargeted > 3 ? "high" : "medium",
+    });
+  }
+
+  // Receipt 6: Data retention — deleted tweets still stored
+  if (archive.deletedTweets.length > 0) {
     receipts.push({
       icon: "\uD83D\uDDD1\uFE0F",
-      text: `${archive.deletedTweets.length} deleted tweets still stored`,
+      text: `${archive.deletedTweets.length} "deleted" tweets still in X's possession`,
       severity: archive.deletedTweets.length > 100 ? "high" : "medium",
     });
   }
 
-  return receipts.slice(0, 3);
+  // Receipt 7: Connected apps with access
+  const writeApps = archive.connectedApps.filter(
+    (a) =>
+      a.permissions.includes("write") ||
+      a.permissions.includes("Read and write"),
+  );
+  if (writeApps.length > 0) {
+    receipts.push({
+      icon: "\uD83D\uDD11",
+      text: `${writeApps.length} apps can still post on your behalf`,
+      severity: writeApps.length > 3 ? "high" : "medium",
+    });
+  }
+
+  return receipts.slice(0, 5);
 }
 
 function fallbackBullets(ctx: ComputeContext): string[] {
@@ -183,13 +219,26 @@ export function computeScore(ctx: ComputeContext): ScoreCardProps | null {
 }
 
 export function computeScoreShareability(props: ScoreCardProps) {
-  // Specificity is dominated by whether we have a real quote + receipts.
+  // More receipts = more specific and shareable
+  const receiptBonus = Math.min(30, props.receipts.length * 8);
   const hasReceipts = props.receipts.length >= 2;
-  const specificity = props.quote ? 85 : hasReceipts ? 65 : 30;
+  const specificity = props.quote
+    ? 85 + receiptBonus
+    : hasReceipts
+      ? 65 + receiptBonus
+      : 30;
   // Magnitude tracks the actual privacy score.
   const magnitude = Math.max(0, Math.min(100, props.overall));
   // Uniqueness boosted by receipts covering multiple domains.
-  const uniqueness = props.quote ? 65 : hasReceipts ? 55 : 30;
+  const uniqueness = props.quote
+    ? 70 + receiptBonus
+    : hasReceipts
+      ? 60 + receiptBonus
+      : 30;
 
-  return { magnitude, specificity, uniqueness };
+  return {
+    magnitude,
+    specificity: Math.min(100, specificity),
+    uniqueness: Math.min(100, uniqueness),
+  };
 }

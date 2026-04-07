@@ -28,6 +28,10 @@ import { dataBetrayalCard } from "./cards/data-betrayal";
 import { reportCardCard } from "./cards/report-card";
 import { algorithmicMirrorCard } from "./cards/algorithmic-mirror";
 import { adPriceTagCard } from "./cards/ad-price-tag";
+import { zombieInterestsCard } from "./cards/zombie-interests";
+import { deletionLieCard } from "./cards/deletion-lie";
+import { brokerLabelCard } from "./cards/broker-label";
+import { prospectusCard } from "./cards/prospectus";
 
 export const SHARE_CARDS: readonly RegisteredShareCard[] = [
   defineShareCard(algorithmicMirrorCard),
@@ -38,6 +42,10 @@ export const SHARE_CARDS: readonly RegisteredShareCard[] = [
   defineShareCard(contactsCard),
   defineShareCard(receiptCard),
   defineShareCard(pipelineCard),
+  defineShareCard(zombieInterestsCard),
+  defineShareCard(deletionLieCard),
+  defineShareCard(brokerLabelCard),
+  defineShareCard(prospectusCard),
   defineShareCard(xguessesCard),
   defineShareCard(wrappedCard),
   defineShareCard(askedGrokCard),

@@ -9,10 +9,10 @@ import {
 export const scoreCard: ShareCardModule<ScoreCardProps> = {
   meta: {
     id: "score",
-    title: "Privacy Score",
-    tagline: "Your X exposure grade with a narrative explanation",
+    title: "Your X Receipt",
+    tagline: "Every way X profiled, tracked, and monetized you — itemized",
     category: "score",
-    slug: "score",
+    slug: "x-receipt",
   },
   compute: computeScore,
   shareabilityScore: computeScoreShareability,
