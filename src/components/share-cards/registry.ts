@@ -41,8 +41,12 @@ import { topFindingCard } from "./cards/top-finding";
 import { securityAuditCard } from "./cards/security-audit";
 import { erosionCard } from "./cards/erosion";
 import { benchmarkCard } from "./cards/benchmark";
+import { dataFateCard } from "./cards/data-fate";
+import { confessionCard } from "./cards/confession";
 
 export const SHARE_CARDS: readonly RegisteredShareCard[] = [
+  defineShareCard(confessionCard),
+  defineShareCard(dataFateCard),
   defineShareCard(topFindingCard),
   defineShareCard(plainEnglishCard),
   defineShareCard(betrayalStackCard),

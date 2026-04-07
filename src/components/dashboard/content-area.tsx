@@ -56,6 +56,8 @@ const SECTION_MAP: Record<
   ),
   "grok-insights": lazy(() => import("@/components/sections/grok-insights")),
   benchmarks: lazy(() => import("@/components/sections/benchmarks")),
+  "data-fate": lazy(() => import("@/components/sections/data-fate")),
+  "the-receipts": lazy(() => import("@/components/sections/the-receipts")),
 };
 
 interface ContentAreaProps {

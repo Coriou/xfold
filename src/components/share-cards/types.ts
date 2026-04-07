@@ -49,7 +49,9 @@ export type ShareCardId =
   | "top-finding"
   | "security-audit"
   | "erosion"
-  | "benchmark";
+  | "benchmark"
+  | "data-fate"
+  | "confession";
 
 export type ShareCardCategory =
   | "headline"

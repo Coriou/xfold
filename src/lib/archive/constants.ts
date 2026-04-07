@@ -21,6 +21,8 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Highlights",
     items: [
       { id: "top-findings", label: "Top Findings" },
+      { id: "the-receipts", label: "The Receipts" },
+      { id: "data-fate", label: "If You Left Today" },
       { id: "algorithmic-mirror", label: "X Thinks You Are…" },
       {
         id: "ad-price-tag",
