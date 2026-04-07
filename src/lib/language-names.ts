@@ -1,0 +1,86 @@
+// ---------------------------------------------------------------------------
+// ISO 639-1 language codes → human-readable names
+// Includes Twitter-specific non-standard codes
+// ---------------------------------------------------------------------------
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  // Standard ISO 639-1
+  af: "Afrikaans",
+  am: "Amharic",
+  ar: "Arabic",
+  bg: "Bulgarian",
+  bn: "Bengali",
+  ca: "Catalan",
+  cs: "Czech",
+  cy: "Welsh",
+  da: "Danish",
+  de: "German",
+  el: "Greek",
+  en: "English",
+  es: "Spanish",
+  et: "Estonian",
+  eu: "Basque",
+  fa: "Persian",
+  fi: "Finnish",
+  fr: "French",
+  gu: "Gujarati",
+  he: "Hebrew",
+  hi: "Hindi",
+  hr: "Croatian",
+  hu: "Hungarian",
+  hy: "Armenian",
+  id: "Indonesian",
+  is: "Icelandic",
+  it: "Italian",
+  ja: "Japanese",
+  ka: "Georgian",
+  kn: "Kannada",
+  ko: "Korean",
+  lt: "Lithuanian",
+  lv: "Latvian",
+  ml: "Malayalam",
+  mr: "Marathi",
+  ms: "Malay",
+  my: "Burmese",
+  ne: "Nepali",
+  nl: "Dutch",
+  no: "Norwegian",
+  or: "Odia",
+  pa: "Punjabi",
+  pl: "Polish",
+  pt: "Portuguese",
+  ro: "Romanian",
+  ru: "Russian",
+  si: "Sinhala",
+  sk: "Slovak",
+  sl: "Slovenian",
+  sr: "Serbian",
+  sv: "Swedish",
+  ta: "Tamil",
+  te: "Telugu",
+  th: "Thai",
+  tl: "Filipino",
+  tr: "Turkish",
+  uk: "Ukrainian",
+  ur: "Urdu",
+  vi: "Vietnamese",
+  zh: "Chinese",
+
+  // Twitter-specific codes
+  und: "Undetermined",
+  qme: "Media only",
+  qst: "Quote tweet",
+  qht: "Hashtags only",
+  qam: "Mentions only",
+  art: "Constructed",
+  zxx: "No linguistic content",
+  in: "Indonesian", // Twitter uses "in" instead of "id" sometimes
+  iw: "Hebrew",     // Twitter uses "iw" instead of "he" sometimes
+  ht: "Haitian Creole",
+  ckb: "Kurdish (Sorani)",
+  ps: "Pashto",
+};
+
+export function getLanguageName(code: string): string {
+  return LANGUAGE_NAMES[code] ?? code.toUpperCase();
+}

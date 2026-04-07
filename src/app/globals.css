@@ -1,26 +1,71 @@
 @import "tailwindcss";
 
+/* ----------------------------------------------------------------------------
+ * Color tokens — single source of truth for browser-rendered colors.
+ *
+ * Mirror in src/lib/brand.ts (hex equivalents for ImageResponse,
+ * html2canvas, and global-error.tsx). Update BOTH when changing the palette.
+ * -------------------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: oklch(0.13 0.005 260);
+  --background-raised: oklch(0.16 0.005 260);
+  --background-overlay: oklch(0.19 0.008 260);
+  --foreground: oklch(0.93 0.005 260);
+  --foreground-muted: oklch(0.60 0.01 260);
+  --accent: oklch(0.72 0.12 192);
+  --accent-hover: oklch(0.78 0.12 192);
+  --accent-muted: oklch(0.35 0.06 192);
+  --danger: oklch(0.65 0.2 25);
+  --border: oklch(0.22 0.005 260);
+  --border-hover: oklch(0.30 0.01 260);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-raised: var(--background-raised);
+  --color-background-overlay: var(--background-overlay);
   --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-danger: var(--danger);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

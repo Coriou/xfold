@@ -33,6 +33,35 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# twitter/x archive data — NEVER commit user data
+*.zip
+twitter-*
+data/
+*.js.bak
+# block common archive extraction patterns
+**/tweets.js
+**/like.js
+**/personalization.js
+**/ad-engagements.js
+**/ad-impressions.js
+**/ad-*.js
+**/ip-audit.js
+**/device-token.js
+**/connected-application.js
+**/direct-messages.js
+**/grok-chat-item.js
+**/follower.js
+**/following.js
+**/block.js
+**/account.js
+**/profile.js
+**/ageinfo.js
+**/phone-number.js
+# test fixtures that may contain real data
+fixtures/
+test-data/
+samples/
+
 # vercel
 .vercel
 
