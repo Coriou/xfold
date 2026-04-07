@@ -41,6 +41,7 @@ const SECTION_MAP: Record<
   "deleted-tweets": lazy(() => import("@/components/sections/deleted-tweets")),
   contacts: lazy(() => import("@/components/sections/contacts")),
   "ghost-data": lazy(() => import("@/components/sections/ghost-data")),
+  "shadow-profile": lazy(() => import("@/components/sections/shadow-profile")),
 };
 
 interface ContentAreaProps {

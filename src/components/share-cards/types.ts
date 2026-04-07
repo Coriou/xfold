@@ -33,7 +33,8 @@ export type ShareCardId =
   | "contacts"
   | "pipeline"
   | "xguesses"
-  | "data-betrayal";
+  | "data-betrayal"
+  | "report-card";
 
 export type ShareCardCategory =
   | "headline"

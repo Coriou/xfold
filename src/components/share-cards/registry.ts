@@ -25,6 +25,7 @@ import { contactsCard } from "./cards/contacts-card";
 import { pipelineCard } from "./cards/pipeline";
 import { xguessesCard } from "./cards/xguesses";
 import { dataBetrayalCard } from "./cards/data-betrayal";
+import { reportCardCard } from "./cards/report-card";
 
 export const SHARE_CARDS: readonly RegisteredShareCard[] = [
   defineShareCard(deletedTweetsCard),
@@ -42,5 +43,6 @@ export const SHARE_CARDS: readonly RegisteredShareCard[] = [
   defineShareCard(advertiserWallCard),
   defineShareCard(offTwitterCard),
   defineShareCard(identityTimelineCard),
+  defineShareCard(reportCardCard),
   defineShareCard(scoreCard),
 ];
