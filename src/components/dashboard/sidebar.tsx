@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 import { NAV_SECTIONS } from "@/lib/archive/constants";
 import { useArchive } from "@/lib/archive/archive-store";
 import type { ParsedArchive } from "@/lib/archive/types";
@@ -20,19 +20,54 @@ export function Sidebar({
 }: SidebarProps) {
   const { state, reset } = useArchive();
   const archive = state.status === "ready" ? state.archive : null;
+  const titleId = useId();
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
 
-  // Close on Escape and lock body scroll while drawer is open on mobile
+  // Close on Escape, lock body scroll, focus first nav button, restore focus
+  // on close, and trap Tab/Shift+Tab inside the drawer. Focus trap is modeled
+  // after share-gallery's implementation.
   useEffect(() => {
     if (!isOpen) return;
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    // Move focus into the drawer once it has rendered.
+    const firstFocusable = drawerRef.current?.querySelector<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    firstFocusable?.focus();
+
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose?.();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose?.();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const focusables = drawerRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusables || focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (!first || !last) return;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", handler);
+
     return () => {
       document.removeEventListener("keydown", handler);
       document.body.style.overflow = prevOverflow;
+      // Restore focus to whatever opened the drawer (the hamburger button).
+      previouslyFocused.current?.focus();
     };
   }, [isOpen, onClose]);
 
@@ -126,10 +161,15 @@ export function Sidebar({
         {sidebarContent}
       </aside>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer. inert when closed so the sidebar buttons aren't in
+          the tab order behind the upload zone / dashboard content. */}
       <div
+        ref={drawerRef}
         className={`fixed inset-0 z-40 lg:hidden ${isOpen ? "" : "pointer-events-none"}`}
         aria-hidden={!isOpen}
+        {...(isOpen
+          ? { role: "dialog", "aria-modal": "true", "aria-labelledby": titleId }
+          : { inert: true })}
       >
         {/* Backdrop */}
         <div
@@ -146,6 +186,9 @@ export function Sidebar({
           }`}
           aria-label="Dashboard sections"
         >
+          <span id={titleId} className="sr-only">
+            Dashboard sections
+          </span>
           {sidebarContent}
         </aside>
       </div>

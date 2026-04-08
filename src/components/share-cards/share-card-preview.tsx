@@ -21,6 +21,7 @@ export function ShareCardPreview({ card, username }: ShareCardPreviewProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.4);
   const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     function update() {
@@ -40,6 +41,7 @@ export function ShareCardPreview({ card, username }: ShareCardPreviewProps) {
   const handleDownload = useCallback(async () => {
     if (!cardRef.current || downloading) return;
     setDownloading(true);
+    setDownloadError(null);
     try {
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(cardRef.current, {
@@ -48,21 +50,22 @@ export function ShareCardPreview({ card, username }: ShareCardPreviewProps) {
         useCORS: false,
         allowTaint: false,
       });
-      await new Promise<void>((resolve) => {
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            resolve();
-            return;
-          }
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `xfold-${username || "card"}-${card.meta.slug}.png`;
-          a.click();
-          URL.revokeObjectURL(url);
-          resolve();
-        }, "image/png");
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), "image/png");
       });
+      if (!blob) {
+        throw new Error("Canvas produced no PNG bytes");
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `xfold-${username || "card"}-${card.meta.slug}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unknown error";
+      setDownloadError(`Couldn't generate the image: ${message}`);
     } finally {
       setDownloading(false);
     }
@@ -105,6 +108,14 @@ export function ShareCardPreview({ card, username }: ShareCardPreviewProps) {
       >
         {downloading ? "Generating…" : "Download as image"}
       </button>
+      {downloadError && (
+        <div
+          role="alert"
+          className="max-w-sm rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-center text-xs text-danger"
+        >
+          {downloadError}
+        </div>
+      )}
     </div>
   );
 }

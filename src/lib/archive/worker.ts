@@ -56,7 +56,11 @@ self.onmessage = (e: MessageEvent<WorkerInMessage>) => {
   switch (msg.type) {
     case "PARSE_ARCHIVE":
       cancelRequested = false;
-      handleParse(msg.buffer);
+      // Fire-and-forget — handleParse is async because it yields to the
+      // message loop periodically (so CANCEL_PARSE messages can interrupt
+      // it). The promise is never awaited because postMessage doesn't
+      // await onmessage handlers.
+      void handleParse(msg.buffer);
       break;
     case "GET_MEDIA":
       handleGetMedia(msg.path, msg.requestId);
@@ -105,7 +109,18 @@ class ArchiveError extends Error {
 // Parse archive — single streaming pass extracts data + media
 // ---------------------------------------------------------------------------
 
-function handleParse(buffer: ArrayBuffer) {
+/**
+ * Yield to the worker's message loop. Used periodically inside the parse
+ * loop so CANCEL_PARSE messages from the main thread aren't queued behind
+ * an entire synchronous handleParse run. Without these yields, clicking
+ * Cancel during a multi-second parse does nothing visible until the parse
+ * finishes.
+ */
+function yieldToMessageLoop(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+async function handleParse(buffer: ArrayBuffer) {
   try {
     const zipData = new Uint8Array(buffer);
     const sizeMB = (zipData.byteLength / (1024 * 1024)).toFixed(1);
@@ -189,12 +204,20 @@ function handleParse(buffer: ArrayBuffer) {
     uz.register(UnzipInflate);
     uz.register(UnzipPassThrough);
 
-    // Feed data in chunks to avoid blowing the call stack
+    // Feed data in chunks to avoid blowing the call stack. Yield to the
+    // message loop every 16 chunks (~1 MB) so CANCEL_PARSE messages don't
+    // sit queued behind a multi-second parse — the next loop iteration's
+    // cancelRequested check will see the updated flag.
     const CHUNK = 65536;
+    let chunkIndex = 0;
     for (let i = 0; i < zipData.length; i += CHUNK) {
       if (cancelRequested) throw new CancelledError();
       const end = Math.min(i + CHUNK, zipData.length);
       uz.push(zipData.subarray(i, end), end === zipData.length);
+      chunkIndex++;
+      if (chunkIndex % 16 === 0) {
+        await yieldToMessageLoop();
+      }
     }
 
     if (totalEntries === 0) {
@@ -262,6 +285,11 @@ function handleParse(buffer: ArrayBuffer) {
       }
 
       parsed++;
+      // Yield every few files so cancel messages can interrupt the loop.
+      // The next iteration's cancelRequested check will see the updated flag.
+      if (parsed % 4 === 0) {
+        await yieldToMessageLoop();
+      }
     }
 
     // Sanity check: an X archive must have either a manifest or an account
