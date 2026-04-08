@@ -34,6 +34,12 @@ export interface GrokAnalysis {
   readonly longestConversation: number;
   /** Average messages per conversation. */
   readonly avgMessagesPerConvo: number;
+  /**
+   * User messages that didn't match any topic pattern. Surfaced in the UI as
+   * an "Uncategorized" row so the topic breakdown isn't misread as a complete
+   * partition of all messages.
+   */
+  readonly uncategorizedMessages: number;
 }
 
 // --- Sensitive topic keywords -----------------------------------------------
@@ -182,14 +188,20 @@ export function buildGrokAnalysis(archive: ParsedArchive): GrokAnalysis | null {
     }
   >();
 
-  for (const convo of convos) {
-    const convoMatched = new Set<string>();
+  // Track messages that don't match *any* topic pattern. Without this, the
+  // Topic Breakdown UI silently swallows whichever fraction of conversations
+  // never matched a regex, and users misread "5 categories with count 1" as
+  // their complete topic distribution.
+  let uncategorizedMessages = 0;
 
+  for (const convo of convos) {
     for (const msg of convo.messages) {
       if (msg.sender !== "user") continue;
 
+      let matchedAny = false;
       for (const tp of allPatterns) {
         if (tp.patterns.some((p) => p.test(msg.message))) {
+          matchedAny = true;
           const existing = topicCounts.get(tp.topic);
           if (existing) {
             existing.messages++;
@@ -209,9 +221,9 @@ export function buildGrokAnalysis(archive: ParsedArchive): GrokAnalysis | null {
               ],
             });
           }
-          convoMatched.add(tp.topic);
         }
       }
+      if (!matchedAny) uncategorizedMessages++;
     }
   }
 
@@ -239,5 +251,6 @@ export function buildGrokAnalysis(archive: ParsedArchive): GrokAnalysis | null {
     longestConversation,
     avgMessagesPerConvo:
       convos.length > 0 ? Math.round(totalMessages / convos.length) : 0,
+    uncategorizedMessages,
   };
 }

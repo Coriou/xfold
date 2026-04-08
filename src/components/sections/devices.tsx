@@ -29,8 +29,8 @@ export default function Devices({
   return (
     <div>
       <SectionHeader
-        title="Devices That Accessed Your Account"
-        description={`X recorded ${pluralize(deviceTokens.length, "app token")}, ${pluralize(niDevices.length, "notification device")}, and ${pluralize(keyRegistryDevices.length, "encryption key")}.`}
+        title="Devices & App Authorizations"
+        description={`X recorded ${pluralize(deviceTokens.length, "app authorization token")}, ${pluralize(niDevices.length, "notification device")}, and ${pluralize(keyRegistryDevices.length, "encryption key")}. App tokens are OAuth grants — not necessarily distinct hardware.`}
         badge={String(total)}
       />
 

@@ -5,7 +5,15 @@ import type { ParsedArchive } from "./types";
 export type WorkerInMessage =
   | { type: "PARSE_ARCHIVE"; buffer: ArrayBuffer }
   | { type: "GET_MEDIA"; path: string; requestId: string }
-  | { type: "CANCEL_PARSE" };
+  | { type: "CANCEL_PARSE" }
+  /**
+   * Hand the worker a previously-saved ZIP buffer (e.g. from IDB on
+   * session restore) so it can serve media via the cold-path lazy
+   * extractor. Skips parsing entirely — the parsed archive is already
+   * in memory on the main thread, all the worker needs is the bytes
+   * for media reads.
+   */
+  | { type: "INIT_FROM_BUFFER"; buffer: ArrayBuffer };
 
 // --- Worker -> Main thread ------------------------------------------------
 

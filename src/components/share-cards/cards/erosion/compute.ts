@@ -36,8 +36,12 @@ export function computeErosion(ctx: ComputeContext): ErosionCardProps | null {
     }
   }
 
-  // Get the 5 most recently added layers
+  // Get the 5 most recently added dated layers. Undated layers (Likes)
+  // sort to the end of timeline.layers, so we filter them out before
+  // taking the slice — otherwise the share card would render an empty
+  // "year" string for them.
   const recentLayers = timeline.layers
+    .filter((l) => !l.undated)
     .slice(-5)
     .reverse()
     .map((l) => ({

@@ -138,8 +138,11 @@ const BENCHMARK_DEFS: readonly BenchmarkDef[] = [
     typicalLow: 2,
     typicalHigh: 8,
     typicalLabel: "2–8 for most people",
-    extract: (a) =>
-      a.deviceTokens.length + a.niDevices.length + a.keyRegistryDevices.length,
+    // Push devices + encryption keys = real device endpoints. App tokens
+    // (deviceTokens) are OAuth grants for "Twitter for iPhone" / "Twitter
+    // for iPad" — they're not hardware fingerprints, and conflating them
+    // inflates the count by 5–10x.
+    extract: (a) => a.niDevices.length + a.keyRegistryDevices.length,
     format: (v, m) =>
       m && m > 2
         ? `${fmt(v)} devices fingerprinted — ${m.toFixed(1)}× the typical count.`

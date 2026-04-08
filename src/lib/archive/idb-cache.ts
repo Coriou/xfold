@@ -4,6 +4,15 @@ import type { ParsedArchive } from "./types";
 const DB_NAME = "xfold-archive";
 const STORE_NAME = "archives";
 const DB_VERSION = 1;
+/**
+ * Key for the original ZIP buffer, stored separately from the parsed
+ * archive entry. We persist the source ZIP so that on session restore
+ * the worker can be lazily re-spawned with the same buffer for cold-path
+ * media extraction. Without this, returning visitors see broken media
+ * tiles everywhere because the worker's `retainedZip` only lives for
+ * the lifetime of the worker.
+ */
+const ZIP_BUFFER_KEY = "latest-zip";
 
 /**
  * Bump this any time the ParsedArchive shape changes in a backwards-
@@ -215,6 +224,7 @@ export async function clearArchive(): Promise<void> {
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, "readwrite");
     tx.objectStore(STORE_NAME).delete("latest");
+    tx.objectStore(STORE_NAME).delete(ZIP_BUFFER_KEY);
     await new Promise<void>((resolve, reject) => {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
@@ -222,5 +232,55 @@ export async function clearArchive(): Promise<void> {
     db.close();
   } catch {
     // IDB is a bonus — silently fail
+  }
+}
+
+/**
+ * Persist the original ZIP buffer so the worker can be lazily re-spawned
+ * after a session restore. Stored separately from the parsed-archive entry
+ * because the buffer can be many GB on large accounts and shouldn't bloat
+ * the parsed-archive read path.
+ *
+ * Best-effort: failures (quota exceeded, etc.) are silently swallowed —
+ * the dashboard still works, the user just won't see media after refresh.
+ */
+export async function saveZipBuffer(buffer: ArrayBuffer): Promise<void> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    // Wrap in a Uint8Array view so the cloned representation stays a typed
+    // array (some IDB implementations don't preserve raw ArrayBuffer well).
+    tx.objectStore(STORE_NAME).put(new Uint8Array(buffer), ZIP_BUFFER_KEY);
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch {
+    // IDB save failed — likely quota. Caller still gets a working in-memory
+    // session; only cross-session media restore is impacted.
+  }
+}
+
+/**
+ * Load the previously-saved ZIP buffer, or null if none. Returned as a
+ * Uint8Array view; consumers can pass `view.buffer` to a worker as an
+ * ArrayBuffer (or transfer it).
+ */
+export async function loadZipBuffer(): Promise<Uint8Array | null> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const req = tx.objectStore(STORE_NAME).get(ZIP_BUFFER_KEY);
+    const stored = await new Promise<unknown>((resolve, reject) => {
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    if (stored instanceof Uint8Array) return stored;
+    if (stored instanceof ArrayBuffer) return new Uint8Array(stored);
+    return null;
+  } catch {
+    return null;
   }
 }

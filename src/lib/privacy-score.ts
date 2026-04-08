@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import type { ParsedArchive } from "@/lib/archive/types";
+import { getDeviceBreakdown } from "@/lib/archive/account-summary";
 
 // --- Types ------------------------------------------------------------------
 
@@ -70,13 +71,12 @@ function severity(score: number): "low" | "medium" | "high" {
 
 function scoreTracking(archive: ParsedArchive): CategoryScore {
   const uniqueIps = new Set(archive.ipAudit.map((e) => e.loginIp)).size;
-  const deviceCount =
-    archive.deviceTokens.length +
-    archive.niDevices.length +
-    archive.keyRegistryDevices.length;
+  const devices = getDeviceBreakdown(archive);
 
-  // Combined signal: IPs contribute most, devices amplify
-  const raw = uniqueIps * 2 + deviceCount;
+  // Combined signal: IPs contribute most, all device-related identifiers
+  // amplify (kept the total here so the score itself is unchanged — only
+  // the user-facing copy gets clearer).
+  const raw = uniqueIps * 2 + devices.total;
   const score = normalize(raw, 30);
 
   const metrics: CategoryMetric[] = [
@@ -86,10 +86,10 @@ function scoreTracking(archive: ParsedArchive): CategoryScore {
       severity: severity(normalize(uniqueIps, 10)),
     },
     {
-      label: "Devices fingerprinted",
-      value: deviceCount,
-      detail: `${archive.deviceTokens.length} app tokens, ${archive.niDevices.length} push devices, ${archive.keyRegistryDevices.length} key registry`,
-      severity: severity(normalize(deviceCount, 15)),
+      label: "Device identifiers",
+      value: devices.total,
+      detail: `${devices.appTokens} app token${devices.appTokens === 1 ? "" : "s"}, ${devices.pushDevices} push device${devices.pushDevices === 1 ? "" : "s"}, ${devices.encryptionKeys} encryption key${devices.encryptionKeys === 1 ? "" : "s"}`,
+      severity: severity(normalize(devices.total, 15)),
     },
     {
       label: "Login events recorded",
@@ -400,10 +400,11 @@ function headline(score: number): string {
 }
 
 function buildAnalogy(archive: ParsedArchive, score: number): string {
-  const deviceCount =
-    archive.deviceTokens.length +
-    archive.niDevices.length +
-    archive.keyRegistryDevices.length;
+  // Use the *real* device count (push devices + encryption keys) — app
+  // tokens are OAuth grants, not hardware fingerprints, so they don't
+  // belong in a "fingerprinted N devices" analogy.
+  const devices = getDeviceBreakdown(archive);
+  const realDeviceCount = devices.pushDevices + devices.encryptionKeys;
   const uniqueIps = new Set(archive.ipAudit.map((e) => e.loginIp)).size;
 
   const advertiserSet = new Set<string>();
@@ -426,8 +427,8 @@ function buildAnalogy(archive: ParsedArchive, score: number): string {
   if (advertiserSet.size > 200) {
     return `${advertiserSet.size.toLocaleString()} different companies paid to reach you — that's more brands than most supermarkets stock.`;
   }
-  if (deviceCount > 10) {
-    return `X fingerprinted ${deviceCount} of your devices — like a private investigator tracking you across ${deviceCount} locations.`;
+  if (realDeviceCount > 5) {
+    return `X fingerprinted ${realDeviceCount} of your devices — like a private investigator tracking you across ${realDeviceCount} locations.`;
   }
   if (uniqueIps > 20) {
     return `X logged ${uniqueIps} unique IPs where you accessed your account — a detailed map of everywhere you've been online.`;

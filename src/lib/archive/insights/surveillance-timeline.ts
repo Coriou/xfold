@@ -168,7 +168,9 @@ export function buildSurveillanceTimeline(
     }
   }
 
-  // First device fingerprint
+  // First device fingerprint — sum all three identifier types in the
+  // headline since this is a "device-related identifiers" milestone, not
+  // a hardware-only count, and the source list explicitly enumerates them.
   {
     const dates: string[] = [
       ...archive.deviceTokens.map((d) => d.createdAt),
@@ -186,7 +188,7 @@ export function buildSurveillanceTimeline(
         timestamp: e.ts,
         icon: "📱",
         label: "Device fingerprinting",
-        description: `${total} devices tracked across tokens and keys.`,
+        description: `${total} device identifiers tracked across app tokens, push devices, and encryption keys.`,
         source: "devices",
       });
     }

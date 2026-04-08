@@ -20,6 +20,11 @@ import {
   buildCorpus,
   isInterestConfirmed,
 } from "@/lib/archive/interest-matching";
+import {
+  getDeviceBreakdown,
+  getReferenceDate,
+  getYearsOnX,
+} from "@/lib/archive/account-summary";
 
 // --- Types ------------------------------------------------------------------
 
@@ -360,25 +365,35 @@ function findInferenceAccuracy(archive: ParsedArchive): TopFinding | null {
 
 function findDeviceSurveillance(archive: ParsedArchive): TopFinding | null {
   const uniqueIps = new Set(archive.ipAudit.map((e) => e.loginIp)).size;
-  const deviceCount =
-    archive.deviceTokens.length +
-    archive.niDevices.length +
-    archive.keyRegistryDevices.length;
+  const devices = getDeviceBreakdown(archive);
 
-  if (uniqueIps < 5 && deviceCount < 3) return null;
+  if (uniqueIps < 5 && devices.total < 3) return null;
 
-  // Cross-reference: tweet sources (clients) that don't match devices
-  const tweetSources = new Set<string>();
-  for (const t of archive.tweets) {
-    if (t.source) tweetSources.add(t.source);
-  }
+  // Headline differentiates app tokens from real device endpoints. The
+  // previous wording ("fingerprinted N devices") lumped OAuth grants for
+  // "Twitter for iPhone" / "Twitter for iPad" into a "devices" count, which
+  // overstated by ~5–10x and broke trust on cross-reference with the
+  // Devices section.
+  const realDeviceCount = devices.pushDevices + devices.encryptionKeys;
+  const hook =
+    realDeviceCount > 0
+      ? `X logged ${fmt(uniqueIps)} unique IP addresses and fingerprinted ${fmt(realDeviceCount)} of your devices via push and encryption identifiers.`
+      : `X logged ${fmt(uniqueIps)} unique IP addresses across your account.`;
+
+  const tokenSuffix =
+    devices.appTokens > 0
+      ? ` Plus ${fmt(devices.appTokens)} app authorization token${devices.appTokens === 1 ? "" : "s"}.`
+      : "";
 
   return {
     id: "device-surveillance",
-    hook: `X logged ${fmt(uniqueIps)} unique IP addresses and fingerprinted ${fmt(deviceCount)} of your devices.`,
-    detail: `Combined with ${fmt(archive.ipAudit.length)} login events, this creates a detailed map of where and how you access X.`,
+    hook,
+    detail: `Combined with ${fmt(archive.ipAudit.length)} login events, this creates a detailed map of where and how you access X.${tokenSuffix}`,
     severity: uniqueIps > 50 ? "critical" : uniqueIps > 15 ? "high" : "medium",
-    shockScore: Math.min(78, 20 + Math.sqrt(uniqueIps) * 5 + deviceCount * 3),
+    shockScore: Math.min(
+      78,
+      20 + Math.sqrt(uniqueIps) * 5 + realDeviceCount * 3,
+    ),
     sectionId: "ip-analysis",
     category: "Tracking",
     action: null,
@@ -518,17 +533,21 @@ function findBulkDeletionPattern(archive: ParsedArchive): TopFinding | null {
 }
 
 function findPrivacyErosion(archive: ParsedArchive): TopFinding | null {
-  // Calculate the data collection surface area over time
-  const now = new Date();
+  // Use the canonical "years on X" helper so this finder, the Privacy
+  // Erosion section header, and the X Eras share card all agree. The
+  // previous implementation rolled its own with `Date.now()` + `/365` and
+  // disagreed with both surfaces.
+  const accountAgeYears = getYearsOnX(archive);
+  if (accountAgeYears === null) return null;
+  if (accountAgeYears < 1) return null;
+
   const accountCreated = archive.account?.createdAt
     ? parseDate(archive.account.createdAt)
     : null;
   if (!accountCreated) return null;
 
-  const accountAgeDays = daysBetween(accountCreated, now);
-  if (accountAgeDays < 365) return null;
-
-  const accountAgeYears = Math.round(accountAgeDays / 365);
+  const refDate = getReferenceDate(archive);
+  const accountAgeDays = Math.max(1, daysBetween(accountCreated, refDate));
 
   // Count total surveillance data points
   const totalDMs = archive.directMessages.reduce(

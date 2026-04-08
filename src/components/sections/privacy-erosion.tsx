@@ -182,8 +182,9 @@ export default function PrivacyErosion({
                 {layer.description}
               </p>
               <p className="mt-1 pl-5 text-[10px] text-foreground-muted/70">
-                First seen: {formatDate(layer.firstSeen)} — Last:{" "}
-                {formatDate(layer.lastSeen)}
+                {layer.undated
+                  ? "Archive does not include per-record timestamps"
+                  : `First seen: ${formatDate(layer.firstSeen)} — Last: ${formatDate(layer.lastSeen)}`}
               </p>
             </div>
           ))}

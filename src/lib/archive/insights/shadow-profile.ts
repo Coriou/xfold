@@ -414,15 +414,14 @@ export function buildShadowProfile(archive: ParsedArchive): ShadowProfile {
     });
   }
 
-  // Device fingerprinting
-  const deviceCount =
-    archive.deviceTokens.length +
-    archive.niDevices.length +
-    archive.keyRegistryDevices.length;
-  if (deviceCount > 0) {
+  // Device fingerprinting — push devices + encryption keys only. App
+  // tokens (deviceTokens) are OAuth grants, not hardware fingerprints.
+  const realDeviceCount =
+    archive.niDevices.length + archive.keyRegistryDevices.length;
+  if (realDeviceCount > 0) {
     inferred.push({
       label: "Devices fingerprinted",
-      value: `${deviceCount} devices tracked`,
+      value: `${realDeviceCount} devices tracked`,
       source: "inferred",
       severity: "high",
       category: "tracking",

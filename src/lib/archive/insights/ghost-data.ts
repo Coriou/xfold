@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import type { ParsedArchive } from "../types";
+import { getDeviceBreakdown } from "../account-summary";
 
 export interface GhostDataCategory {
   readonly id: string;
@@ -83,14 +84,18 @@ export function detectGhostData(archive: ParsedArchive): GhostDataCategory[] {
     });
   }
 
-  // Device fingerprints (key registry + NI devices)
-  const deviceFingerprints =
-    archive.keyRegistryDevices.length + archive.niDevices.length;
+  // Device fingerprints — push devices + encryption keys. We deliberately
+  // exclude `deviceTokens` (OAuth app authorizations like "Twitter for
+  // iPhone") because those are app grants, not device fingerprints. Using
+  // the canonical breakdown so this number agrees with the Devices section
+  // and the Top Findings device-surveillance card.
+  const devices = getDeviceBreakdown(archive);
+  const deviceFingerprints = devices.pushDevices + devices.encryptionKeys;
   if (deviceFingerprints > 0) {
     candidates.push({
       id: "device-fingerprints",
       label: "Device Fingerprints",
-      description: `X fingerprinted ${deviceFingerprints.toLocaleString()} of your devices using user agents, UDIDs, and push tokens.`,
+      description: `X fingerprinted ${deviceFingerprints.toLocaleString()} of your devices using UDIDs, push tokens, and encryption keys.`,
       headline: `${deviceFingerprints.toLocaleString()} device fingerprints`,
       count: deviceFingerprints,
       severity: "warning",

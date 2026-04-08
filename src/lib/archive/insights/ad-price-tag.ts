@@ -22,6 +22,7 @@
 import type { ParsedArchive } from "@/lib/archive/types";
 import { parseDate } from "@/lib/format";
 import { buildAdvertiserStats } from "./advertiser-stats";
+import { getReferenceDate } from "@/lib/archive/account-summary";
 
 // --- Types ------------------------------------------------------------------
 
@@ -181,14 +182,17 @@ export function buildAdPriceTag(archive: ParsedArchive): AdPriceTag | null {
     0,
   );
 
-  // Account age for per-year/per-day calculation
+  // Account age for per-year/per-day calculation. Anchored on the archive's
+  // generation date so the same archive always produces the same per-day
+  // figure regardless of when the user opens it.
   const createdAt = archive.account?.createdAt ?? null;
   const createdDate = createdAt ? parseDate(createdAt) : null;
+  const refDate = getReferenceDate(archive);
   const daysSinceCreation = createdDate
     ? Math.max(
         1,
         Math.floor(
-          (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24),
+          (refDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24),
         ),
       )
     : 365; // fallback to 1 year

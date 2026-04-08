@@ -242,11 +242,16 @@ export default function ActivityPatterns({
         description={`Cross-referencing ${formatNumber(allEvents.length)} events across ${availableSources.length} data sources.`}
       />
 
-      {/* Privacy callout */}
+      {/* Privacy callout — note: this measures the single hottest cell in
+          the heatmap (one specific day-of-week + hour combo), which can
+          differ from the marginals shown in the stat cards below. The "most
+          active day" stat sums an entire row; "most active hour" sums an
+          entire column; this banner finds the single hottest cell. Don't
+          conflate these in copy. */}
       {peak && (
         <div className="mb-6 rounded-xl border border-danger/20 bg-danger/5 p-5">
           <p className="text-sm font-medium text-danger">
-            Your most active time is{" "}
+            Your single most active hour is{" "}
             <span className="font-bold">{getDayLabel(peak.day, true)}</span> at{" "}
             <span className="font-bold">{formatHour(peak.hour)}</span> — this
             pattern is visible to anyone with access to your data.

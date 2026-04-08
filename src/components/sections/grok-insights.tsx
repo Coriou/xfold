@@ -113,35 +113,70 @@ export default function GrokInsights({ archive }: { archive: ParsedArchive }) {
       )}
 
       {/* General topics */}
-      {generalTopics.length > 0 && (
+      {(generalTopics.length > 0 || analysis.uncategorizedMessages > 0) && (
         <div className="mb-6">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground-muted">
+          <h3 className="mb-1 text-sm font-semibold uppercase tracking-wider text-foreground-muted">
             Topic Breakdown
           </h3>
+          <p className="mb-3 text-xs text-foreground-muted">
+            Messages classified by keyword pattern. Uncategorized messages
+            either don&apos;t match any topic dictionary or use vocabulary the
+            classifier doesn&apos;t cover yet.
+          </p>
           <div className="space-y-2">
-            {generalTopics.map((topic) => {
-              const maxCount = generalTopics[0]?.messageCount ?? 1;
-              const widthPct = Math.max(
-                5,
-                (topic.messageCount / maxCount) * 100,
-              );
-              return (
-                <div key={topic.topic} className="flex items-center gap-3">
-                  <span className="w-36 shrink-0 truncate text-right text-xs text-foreground-muted">
-                    {topic.topic}
-                  </span>
-                  <div className="relative h-5 flex-1 overflow-hidden rounded bg-foreground/5">
-                    <div
-                      className="h-full rounded bg-accent/50"
-                      style={{ width: `${widthPct}%` }}
-                    />
+            {(() => {
+              // Bake the uncategorized bucket into the same render loop so the
+              // bars are normalized against the largest segment (often the
+              // uncategorized one), instead of leaving every classified bar
+              // pinned at 100% width when topics each match one message.
+              const rows: {
+                topic: string;
+                messageCount: number;
+                isOther: boolean;
+              }[] = generalTopics.map((t) => ({
+                topic: t.topic,
+                messageCount: t.messageCount,
+                isOther: false,
+              }));
+              if (analysis.uncategorizedMessages > 0) {
+                rows.push({
+                  topic: "Uncategorized",
+                  messageCount: analysis.uncategorizedMessages,
+                  isOther: true,
+                });
+              }
+              const maxCount = Math.max(...rows.map((r) => r.messageCount), 1);
+              return rows.map((row) => {
+                const widthPct = Math.max(
+                  5,
+                  (row.messageCount / maxCount) * 100,
+                );
+                return (
+                  <div key={row.topic} className="flex items-center gap-3">
+                    <span
+                      className={`w-36 shrink-0 truncate text-right text-xs ${
+                        row.isOther
+                          ? "italic text-foreground-muted/70"
+                          : "text-foreground-muted"
+                      }`}
+                    >
+                      {row.topic}
+                    </span>
+                    <div className="relative h-5 flex-1 overflow-hidden rounded bg-foreground/5">
+                      <div
+                        className={`h-full rounded ${
+                          row.isOther ? "bg-foreground/15" : "bg-accent/50"
+                        }`}
+                        style={{ width: `${widthPct}%` }}
+                      />
+                    </div>
+                    <span className="w-16 shrink-0 text-right font-mono text-xs text-foreground-muted">
+                      {row.messageCount}
+                    </span>
                   </div>
-                  <span className="w-16 shrink-0 text-right font-mono text-xs text-foreground-muted">
-                    {topic.messageCount}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { getDayLabel, formatHour } from "@/lib/format";
 import { accentAlpha, neutralOklchFaint } from "@/lib/brand";
 
@@ -66,11 +67,8 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
 
           {/* Day rows */}
           {[1, 2, 3, 4, 5, 6, 0].map((day) => (
-            <>
-              <div
-                key={`d-${day}`}
-                className="flex items-center pr-2 text-xs text-foreground-muted"
-              >
+            <Fragment key={day}>
+              <div className="flex items-center pr-2 text-xs text-foreground-muted">
                 {getDayLabel(day)}
               </div>
               {Array.from({ length: 24 }, (_, hour) => {
@@ -80,7 +78,7 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
 
                 return (
                   <div
-                    key={`${day}-${hour}`}
+                    key={hour}
                     className="rounded-sm"
                     style={{
                       backgroundColor:
@@ -90,7 +88,7 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                   />
                 );
               })}
-            </>
+            </Fragment>
           ))}
         </div>
       </div>

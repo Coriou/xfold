@@ -13,6 +13,7 @@ import {
   formatDate,
   pluralize,
 } from "@/lib/format";
+import { getReferenceDate } from "@/lib/archive/account-summary";
 import { chartColors } from "@/lib/brand";
 
 export default function Overview({ archive }: { archive: ParsedArchive }) {
@@ -20,7 +21,7 @@ export default function Overview({ archive }: { archive: ParsedArchive }) {
   const [cardOpen, setCardOpen] = useState(false);
 
   const accountAge = archive.account?.createdAt
-    ? formatAccountAge(archive.account.createdAt)
+    ? formatAccountAge(archive.account.createdAt, getReferenceDate(archive))
     : null;
 
   // Find the worst category for the bottom callout

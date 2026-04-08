@@ -18,6 +18,7 @@
 
 import type { ParsedArchive, Tweet } from "@/lib/archive/types";
 import { parseDate } from "@/lib/format";
+import { getYearsOnX } from "@/lib/archive/account-summary";
 
 // --- Types ------------------------------------------------------------------
 
@@ -343,9 +344,18 @@ export function buildXEras(archive: ParsedArchive): XErasResult | null {
   const lastEra = eras[eras.length - 1];
   if (!firstEra || !lastEra) return null;
 
+  // Use the canonical "years on X" value so this share card matches the
+  // Top Findings card and the Privacy Erosion section header. The previous
+  // computation used `lastEra.endYear - firstEra.startYear + 1`, which is
+  // the span of *years that had tweets* — which can be smaller than the
+  // account's actual age if the user joined X before they started posting.
+  const canonicalYears = getYearsOnX(archive);
+  const totalYears =
+    canonicalYears ?? lastEra.endYear - firstEra.startYear + 1;
+
   return {
     eras,
-    totalYears: lastEra.endYear - firstEra.startYear + 1,
+    totalYears,
     username: archive.meta.username,
   };
 }

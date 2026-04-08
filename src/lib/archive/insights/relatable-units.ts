@@ -9,6 +9,10 @@
 
 import type { ParsedArchive } from "@/lib/archive/types";
 import { parseDate } from "@/lib/format";
+import {
+  getReferenceDate,
+  getYearsOnX,
+} from "@/lib/archive/account-summary";
 
 export interface RelatableUnit {
   /** Short label for the metric. */
@@ -35,7 +39,9 @@ function accountAgeDays(archive: ParsedArchive): number {
     ? parseDate(archive.account.createdAt)
     : null;
   if (!created) return 365; // fallback
-  return daysBetween(created, new Date());
+  // Anchor on the archive's reference date (generation date) so the same
+  // archive always produces the same per-day figures.
+  return daysBetween(created, getReferenceDate(archive));
 }
 
 export function buildRelatableUnits(
@@ -43,7 +49,9 @@ export function buildRelatableUnits(
 ): readonly RelatableUnit[] {
   const results: RelatableUnit[] = [];
   const ageDays = accountAgeDays(archive);
-  const ageYears = Math.max(1, Math.round(ageDays / 365));
+  // Use the canonical "years on X" so this surface agrees with everything
+  // else, falling back to a per-day floor when the helper has nothing.
+  const ageYears = Math.max(1, getYearsOnX(archive) ?? Math.round(ageDays / 365));
 
   // --- Ad impressions → ads per day ---
   let totalImpressions = 0;
@@ -189,16 +197,16 @@ export function buildRelatableUnits(
   }
 
   // --- Devices tracked ---
-  const deviceCount =
-    archive.deviceTokens.length +
-    archive.niDevices.length +
-    archive.keyRegistryDevices.length;
-  if (deviceCount > 0) {
+  // Push devices + encryption keys are real device endpoints. App tokens
+  // are OAuth grants that don't represent distinct hardware.
+  const realDeviceCount =
+    archive.niDevices.length + archive.keyRegistryDevices.length;
+  if (realDeviceCount > 0) {
     results.push({
       label: "Devices fingerprinted",
-      raw: deviceCount,
-      relatable: `${deviceCount} unique device fingerprints`,
-      sentence: `X fingerprinted ${deviceCount} of your devices — every phone, tablet, and computer you've used.`,
+      raw: realDeviceCount,
+      relatable: `${realDeviceCount} unique device fingerprints`,
+      sentence: `X fingerprinted ${realDeviceCount} of your devices — every phone, tablet, and computer you've used.`,
       category: "tracking",
     });
   }

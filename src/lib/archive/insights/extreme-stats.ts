@@ -10,6 +10,11 @@
 import type { ParsedArchive } from "@/lib/archive/types";
 import { parseDate } from "@/lib/format";
 import { buildAdvertiserStats } from "@/lib/archive/insights/advertiser-stats";
+import {
+  getDeviceBreakdown,
+  getReferenceDate,
+  getYearsOnX,
+} from "@/lib/archive/account-summary";
 
 export type ExtremeStatKey =
   | "advertisers"
@@ -40,12 +45,18 @@ function clamp(n: number): number {
   return Math.round(n);
 }
 
-function accountAgeYears(archive: ParsedArchive): number {
+/**
+ * Account age as a fractional year, anchored on the archive's generation
+ * date (not `Date.now()`) so the same archive always produces the same
+ * shareability score regardless of when it's opened.
+ */
+function accountAgeYearsFractional(archive: ParsedArchive): number {
   const created = archive.account?.createdAt;
   if (!created) return 0;
   const d = parseDate(created);
   if (!d) return 0;
-  const ms = Date.now() - d.getTime();
+  const ref = getReferenceDate(archive);
+  const ms = ref.getTime() - d.getTime();
   if (ms <= 0) return 0;
   return ms / (1000 * 60 * 60 * 24 * 365.25);
 }
@@ -56,24 +67,29 @@ function totalDmMessages(archive: ParsedArchive): number {
   return total;
 }
 
-function totalDevices(archive: ParsedArchive): number {
-  return (
-    archive.deviceTokens.length +
-    archive.niDevices.length +
-    archive.keyRegistryDevices.length
-  );
+/**
+ * Real device endpoints — push devices + encryption keys. Excludes app
+ * tokens (OAuth grants) so the receipt card and the gallery auto-picker
+ * agree with the canonical "device fingerprints" wording elsewhere.
+ */
+function realDeviceCount(archive: ParsedArchive): number {
+  const d = getDeviceBreakdown(archive);
+  return d.pushDevices + d.encryptionKeys;
 }
 
 export function scanForExtremeStats(archive: ParsedArchive): ExtremeStat[] {
   const ads = buildAdvertiserStats(archive, 0);
   const interests = archive.personalization?.interests.length ?? 0;
   const uniqueIps = new Set(archive.ipAudit.map((e) => e.loginIp)).size;
-  const years = accountAgeYears(archive);
+  const yearsFractional = accountAgeYearsFractional(archive);
+  // Use the canonical "years on X" for the displayed value, falling back
+  // to floor(fractional) when the canonical helper has nothing to compute.
+  const yearsCanonical = getYearsOnX(archive) ?? Math.floor(yearsFractional);
   const totalImpressions = ads.totalImpressions;
   const tweetCount = archive.tweets.length;
   const dms = totalDmMessages(archive);
   const apps = archive.connectedApps.length;
-  const devices = totalDevices(archive);
+  const devices = realDeviceCount(archive);
 
   const candidates: ExtremeStat[] = [
     {
@@ -99,10 +115,10 @@ export function scanForExtremeStats(archive: ParsedArchive): ExtremeStat[] {
     },
     {
       key: "ageYears",
-      value: Math.floor(years),
+      value: yearsCanonical,
       label: "years of data collection",
       contextLine: "the entire history X has on you",
-      shareability: clamp((years / 15) * 100),
+      shareability: clamp((yearsFractional / 15) * 100),
     },
     {
       key: "adImpressions",

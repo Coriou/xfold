@@ -15,6 +15,7 @@
 
 import type { ParsedArchive } from "@/lib/archive/types";
 import { parseDate } from "@/lib/format";
+import { getDeviceBreakdown } from "@/lib/archive/account-summary";
 
 // --- Types ------------------------------------------------------------------
 
@@ -35,7 +36,11 @@ export interface TweetSourceSummary {
 export interface SecurityAudit {
   /** Distinct IP addresses used. */
   readonly uniqueIps: number;
-  /** Distinct devices fingerprinted. */
+  /**
+   * Real device endpoints — push notification devices + encryption keys.
+   * Excludes OAuth app tokens (which the previous implementation lumped in,
+   * inflating the count by ~5–10x and contradicting the Devices section).
+   */
   readonly deviceCount: number;
   /** Distinct tweet clients used. */
   readonly clientCount: number;
@@ -135,17 +140,23 @@ export function buildSecurityAudit(
   }
 
   // --- Device analysis ---
-  const deviceCount =
-    archive.deviceTokens.length +
-    archive.niDevices.length +
-    archive.keyRegistryDevices.length;
+  // We surface the total number of device-related identifiers in the stats
+  // grid, but the anomaly copy only counts *real* device endpoints (push +
+  // encryption keys). App tokens are OAuth grants, not hardware
+  // fingerprints, and conflating them inflates the count by ~5–10x.
+  const devices = getDeviceBreakdown(archive);
+  const realDeviceCount = devices.pushDevices + devices.encryptionKeys;
 
-  if (deviceCount > 10) {
+  if (realDeviceCount > 5) {
     anomalies.push({
       id: "many-devices",
-      label: `${deviceCount} devices fingerprinted`,
-      detail: `X has detailed hardware identifiers for ${deviceCount} of your devices. Outdated devices may still have active sessions.`,
-      severity: deviceCount > 20 ? "critical" : "warning",
+      label: `${realDeviceCount} device endpoints registered`,
+      detail: `X holds push tokens or encryption keys for ${realDeviceCount} of your devices${
+        devices.appTokens > 0
+          ? `, plus ${devices.appTokens} app authorization tokens`
+          : ""
+      }. Outdated devices may still have active sessions.`,
+      severity: realDeviceCount > 12 ? "critical" : "warning",
     });
   }
 
@@ -199,7 +210,7 @@ export function buildSecurityAudit(
 
   return {
     uniqueIps,
-    deviceCount,
+    deviceCount: realDeviceCount,
     clientCount: tweetSources.length,
     tweetSources,
     anomalies,

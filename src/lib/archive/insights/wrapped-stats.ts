@@ -11,6 +11,7 @@
 
 import type { ParsedArchive, ScreenNameChange } from "@/lib/archive/types";
 import { parseDate } from "@/lib/format";
+import { getReferenceDate } from "@/lib/archive/account-summary";
 import type { Contact } from "@/lib/archive/conversation-intelligence";
 import {
   findFirstAndLastTweet,
@@ -65,7 +66,10 @@ function computeDaysOnX(archive: ParsedArchive): number | null {
   if (!created) return null;
   const d = parseDate(created);
   if (!d) return null;
-  const ms = Date.now() - d.getTime();
+  // Anchored on the archive's generation date so the same archive always
+  // produces the same "X days on X" number — no Date.now() drift.
+  const ref = getReferenceDate(archive);
+  const ms = ref.getTime() - d.getTime();
   if (ms <= 0) return 0;
   return Math.floor(ms / (1000 * 60 * 60 * 24));
 }

@@ -21,10 +21,20 @@ export function parseDate(str: string): Date | null {
   return isNaN(dotted.getTime()) ? null : dotted;
 }
 
+/**
+ * Sentinel: any timestamp at or before the Unix epoch is treated as "missing".
+ * X ships rows (e.g. unused device tokens) with `createdAt: "1970-01-01..."`,
+ * which would otherwise render as "Jan 1, 1970" — clearly junk to a user.
+ */
+function isMissingDate(d: Date): boolean {
+  return d.getTime() <= 0;
+}
+
 /** Format a date string to "Oct 10, 2012" */
 export function formatDate(str: string): string {
   const d = parseDate(str);
   if (!d) return str;
+  if (isMissingDate(d)) return "—";
   return d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -36,6 +46,7 @@ export function formatDate(str: string): string {
 export function formatDateTime(str: string): string {
   const d = parseDate(str);
   if (!d) return str;
+  if (isMissingDate(d)) return "—";
   return d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -117,11 +128,15 @@ export function toMonthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-/** Human-readable account age: "13 years, 4 months" */
-export function formatAccountAge(createdAt: string): string {
+/**
+ * Human-readable account age: "13 years, 4 months". Pass an optional `asOf`
+ * date (typically the archive's generation date) so the same archive always
+ * produces the same age string regardless of when the user opens it.
+ */
+export function formatAccountAge(createdAt: string, asOf?: Date): string {
   const d = parseDate(createdAt);
   if (!d) return "";
-  const now = new Date();
+  const now = asOf ?? new Date();
   let years = now.getFullYear() - d.getFullYear();
   let months = now.getMonth() - d.getMonth();
   if (months < 0) {

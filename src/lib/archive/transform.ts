@@ -89,6 +89,25 @@ function parseSource(html: string): string {
   return match?.[1] ?? html;
 }
 
+/**
+ * Deduplicate an array by a stable key, keeping the first occurrence. The X
+ * archive ships duplicate `connected_application` rows (same numeric id, same
+ * display name) for apps users have re-authorized — let through they cause
+ * React `key` collision warnings, double-rendered cards, and inflated counts
+ * on the Connected Apps page.
+ */
+function dedupeBy<T>(items: T[], key: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const item of items) {
+    const k = key(item);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(item);
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Main transform
 // ---------------------------------------------------------------------------
@@ -116,7 +135,10 @@ export function transformArchive(
     adImpressions: r("ad_impressions").map(transformAdImpressionBatch),
     ipAudit: r("ip_audit").map(transformIpAudit),
     deviceTokens: r("device_token").map(transformDeviceToken),
-    connectedApps: r("connected_application").map(transformConnectedApp),
+    connectedApps: dedupeBy(
+      r("connected_application").map(transformConnectedApp),
+      (app) => app.id,
+    ),
     niDevices: r("ni_devices").map(transformNiDevice),
     keyRegistryDevices: transformKeyRegistry(r("key_registry")),
     grokConversations: groupGrokConversations(r("grok_chat_item")),

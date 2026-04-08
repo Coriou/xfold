@@ -428,11 +428,33 @@ function AnalyticsView({
       years: toSorted(yearMap).sort((a, b) =>
         a.label.localeCompare(b.label),
       ),
+      // Self-replies are a *subset* of replies, not a peer category — listing
+      // them as a fourth bar makes the breakdown sum to >100%. We surface
+      // self-replies inside the Replies sub-label instead, so the three
+      // partition-of-tweets categories sum cleanly to 100%.
       typeBreakdown: [
-        { label: "Original", value: originalCount, subLabel: `${nonRTCount > 0 ? Math.round((originalCount / tweets.length) * 100) : 0}%` },
-        { label: "Replies", value: replyCount, subLabel: `${tweets.length > 0 ? Math.round((replyCount / tweets.length) * 100) : 0}%` },
-        { label: "Self-replies", value: selfReplyCount, subLabel: `${tweets.length > 0 ? Math.round((selfReplyCount / tweets.length) * 100) : 0}%` },
-        { label: "Retweets", value: retweetCount, subLabel: `${tweets.length > 0 ? Math.round((retweetCount / tweets.length) * 100) : 0}%` },
+        {
+          label: "Original",
+          value: originalCount,
+          subLabel: `${tweets.length > 0 ? Math.round((originalCount / tweets.length) * 100) : 0}%`,
+        },
+        {
+          label: "Replies",
+          value: replyCount,
+          subLabel:
+            tweets.length > 0
+              ? `${Math.round((replyCount / tweets.length) * 100)}%${
+                  selfReplyCount > 0
+                    ? ` • ${formatNumber(selfReplyCount)} to yourself`
+                    : ""
+                }`
+              : "0%",
+        },
+        {
+          label: "Retweets",
+          value: retweetCount,
+          subLabel: `${tweets.length > 0 ? Math.round((retweetCount / tweets.length) * 100) : 0}%`,
+        },
       ],
       originalCount,
       replyCount,

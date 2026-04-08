@@ -12,6 +12,8 @@ import {
   saveArchive as idbSave,
   loadArchive as idbLoad,
   clearArchive as idbClear,
+  saveZipBuffer as idbSaveZip,
+  loadZipBuffer as idbLoadZip,
 } from "./idb-cache";
 import { buildDemoArchive } from "./demo-archive";
 
@@ -40,6 +42,17 @@ export function useArchiveWorker() {
   const mediaCallbacks = useRef<
     Map<string, { resolve: (b: Blob | null) => void }>
   >(new Map());
+  /**
+   * On session restore we load the ZIP buffer from IDB but don't spawn a
+   * worker for it until the first media request comes in. We hold the
+   * bytes in this ref so the lazy spawn can hand them off to the worker
+   * via INIT_FROM_BUFFER. Cleared when a fresh archive is uploaded.
+   *
+   * Without this, every returning visitor sees broken media tiles
+   * everywhere — `getMedia` returns null because no worker exists, and
+   * the media component renders its error placeholder.
+   */
+  const restoredBufferRef = useRef<Uint8Array | null>(null);
 
   // Clean up worker on unmount
   useEffect(() => {
@@ -49,10 +62,13 @@ export function useArchiveWorker() {
     };
   }, []);
 
-  // Restore from IndexedDB on mount
+  // Restore from IndexedDB on mount — both the parsed archive AND the
+  // source ZIP buffer (so media works after refresh, not just data).
   useEffect(() => {
-    void idbLoad().then((cached) => {
+    void Promise.all([idbLoad(), idbLoadZip()]).then(([cached, zipBytes]) => {
       if (cached) {
+        // Stash the buffer for lazy worker init on first media request.
+        if (zipBytes) restoredBufferRef.current = zipBytes;
         setState((prev) =>
           prev.status === "idle" ? { status: "ready", archive: cached } : prev,
         );
@@ -134,6 +150,16 @@ export function useArchiveWorker() {
 
       try {
         const buffer = await file.arrayBuffer();
+        // Persist the ZIP bytes to IDB *before* transferring the buffer to
+        // the worker — once transferred the original is detached and we
+        // can't read it anymore. We `await` the save so the bytes are
+        // structurally cloned into the IDB request before the transfer
+        // detaches the buffer. The save is best-effort: if it fails (quota
+        // exceeded), parsing still proceeds but media won't survive a
+        // refresh, which is the same as the pre-fix behavior.
+        await idbSaveZip(buffer);
+        // A fresh upload invalidates any cached restore-buffer.
+        restoredBufferRef.current = null;
         const worker = getOrCreateWorker();
         const msg: WorkerInMessage = { type: "PARSE_ARCHIVE", buffer };
         worker.postMessage(msg, [buffer]);
@@ -166,30 +192,58 @@ export function useArchiveWorker() {
     );
   }, []);
 
-  const getMedia = useCallback((path: string): Promise<Blob | null> => {
-    return new Promise((resolve) => {
-      const worker = workerRef.current;
-      if (!worker) {
-        resolve(null);
-        return;
-      }
+  const getMedia = useCallback(
+    (path: string): Promise<Blob | null> => {
+      return new Promise((resolve) => {
+        let worker = workerRef.current;
 
-      const requestId = crypto.randomUUID();
-      mediaCallbacks.current.set(requestId, { resolve });
+        // Lazy worker spawn after a session restore. The IDB-restored archive
+        // had no associated worker (we don't spawn one upfront — many users
+        // never visit a media-heavy section). When the first media request
+        // comes in, we spin up a worker and seed it with the cached buffer
+        // via INIT_FROM_BUFFER. Subsequent requests reuse the worker.
+        if (!worker && restoredBufferRef.current) {
+          const buffer = restoredBufferRef.current.buffer.slice(
+            restoredBufferRef.current.byteOffset,
+            restoredBufferRef.current.byteOffset +
+              restoredBufferRef.current.byteLength,
+          ) as ArrayBuffer;
+          worker = getOrCreateWorker();
+          const initMsg: WorkerInMessage = {
+            type: "INIT_FROM_BUFFER",
+            buffer,
+          };
+          worker.postMessage(initMsg, [buffer]);
+          // Drop our retained reference — the bytes now live in the worker.
+          // If the user navigates away and back, the IDB restore path will
+          // re-load and re-init via this same flow.
+          restoredBufferRef.current = null;
+        }
 
-      const msg: WorkerInMessage = {
-        type: "GET_MEDIA",
-        path,
-        requestId,
-      };
-      worker.postMessage(msg);
-    });
-  }, []);
+        if (!worker) {
+          resolve(null);
+          return;
+        }
+
+        const requestId = crypto.randomUUID();
+        mediaCallbacks.current.set(requestId, { resolve });
+
+        const msg: WorkerInMessage = {
+          type: "GET_MEDIA",
+          path,
+          requestId,
+        };
+        worker.postMessage(msg);
+      });
+    },
+    [getOrCreateWorker],
+  );
 
   const reset = useCallback(() => {
     workerRef.current?.terminate();
     workerRef.current = null;
     mediaCallbacks.current.clear();
+    restoredBufferRef.current = null;
     void idbClear();
     setState({ status: "idle" });
   }, []);
@@ -198,8 +252,17 @@ export function useArchiveWorker() {
    * Load the bundled demo archive into the dashboard. Bypasses the worker
    * and the IDB cache entirely — the demo is meant to be a stateless
    * "what does this look like" view, not a thing the user persists.
+   *
+   * If the user had a real cached archive open and clicks "demo", we
+   * also drop any restored buffer ref so subsequent media requests in
+   * demo mode don't accidentally hit the wrong worker buffer. Demo
+   * media items have `localPath: null` so the request never happens
+   * in practice — this is just defensive.
    */
   const loadDemoArchive = useCallback(() => {
+    workerRef.current?.terminate();
+    workerRef.current = null;
+    restoredBufferRef.current = null;
     const archive = buildDemoArchive();
     setState({ status: "ready", archive });
   }, []);

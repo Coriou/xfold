@@ -9,15 +9,16 @@
 
 import type { ParsedArchive } from "@/lib/archive/types";
 import { parseDate } from "@/lib/format";
+import { getYearsOnX } from "@/lib/archive/account-summary";
 
 // --- Types ------------------------------------------------------------------
 
 export interface ErosionLayer {
   /** Human-readable label. */
   readonly label: string;
-  /** When X first started collecting this type. */
+  /** When X first started collecting this type. Empty string if undated. */
   readonly firstSeen: string;
-  /** When the most recent record was collected. */
+  /** When the most recent record was collected. Empty string if undated. */
   readonly lastSeen: string;
   /** Total records in this layer. */
   readonly count: number;
@@ -30,6 +31,13 @@ export interface ErosionLayer {
     | "third-party";
   /** Brief description of what this tracks. */
   readonly description: string;
+  /**
+   * True when the layer has no per-record timestamps in the archive (e.g.
+   * Likes). Undated layers are still shown in the layer list with their
+   * count, but they don't claim a position on the timeline and they don't
+   * contribute to the firstYear/lastYear span.
+   */
+  readonly undated: boolean;
 }
 
 export interface ErosionMilestone {
@@ -44,13 +52,19 @@ export interface ErosionMilestone {
 }
 
 export interface ErosionTimeline {
-  /** All data layers, sorted by firstSeen asc. */
+  /** All data layers, dated layers first (sorted by firstSeen asc). */
   readonly layers: readonly ErosionLayer[];
   /** Year-by-year milestone data for the stacked visualization. */
   readonly milestones: readonly ErosionMilestone[];
   /** Total data categories X is collecting. */
   readonly totalCategories: number;
-  /** Years between first and most recent data. */
+  /**
+   * Canonical "years on X" — derived from account creation date via
+   * `getYearsOnX`, NOT from the calendar-year span across data layers.
+   * The previous implementation used `lastYear - firstYear + 1`, which
+   * disagreed with the rest of the dashboard whenever a layer's first
+   * record was from a different year than account creation.
+   */
   readonly spanYears: number;
 }
 
@@ -186,18 +200,26 @@ export function buildErosionTimeline(
   const layers: ErosionLayer[] = [];
 
   for (const config of layerConfigs) {
-    // Skip likes (no dates) but include if there are any
+    // Likes have no per-record timestamps in the archive. The previous
+    // implementation faked `firstSeen = account creation` and `lastSeen =
+    // generation date`, which:
+    //   1. anchored a "+Likes" marker on the year of account creation in
+    //      the chart (a chart claim with no underlying data),
+    //   2. polluted spanYears (because the synthetic firstSeen was usually
+    //      the earliest of any layer),
+    //   3. made the layer card lie about "First seen" / "Last".
+    // We now flag Likes as `undated: true` so the layer is still listed
+    // (count + description) but doesn't claim a position on the timeline.
     if (config.label === "Likes") {
       if (archive.likes.length > 0) {
-        // Use account creation date as proxy
-        const accountDate = archive.account?.createdAt ?? "";
         layers.push({
           label: config.label,
-          firstSeen: accountDate,
-          lastSeen: archive.meta.generationDate,
+          firstSeen: "",
+          lastSeen: "",
           count: archive.likes.length,
           category: config.category,
           description: config.description,
+          undated: true,
         });
       }
       continue;
@@ -213,22 +235,31 @@ export function buildErosionTimeline(
       count: range.count,
       category: config.category,
       description: config.description,
+      undated: false,
     });
   }
 
   if (layers.length < 2) return null;
 
-  // Sort by first seen date
+  // Sort dated layers by first seen ascending; undated layers go to the end.
   layers.sort((a, b) => {
+    if (a.undated && b.undated) return 0;
+    if (a.undated) return 1;
+    if (b.undated) return -1;
     const aDate = parseDate(a.firstSeen);
     const bDate = parseDate(b.firstSeen);
     if (!aDate || !bDate) return 0;
     return aDate.getTime() - bDate.getTime();
   });
 
-  // Build milestones by year
-  const firstDate = parseDate(layers[0]?.firstSeen ?? "");
-  const lastDate = parseDate(layers[layers.length - 1]?.lastSeen ?? "");
+  // Build milestones by year — only dated layers participate.
+  const datedLayers = layers.filter((l) => !l.undated);
+  if (datedLayers.length === 0) return null;
+
+  const firstDate = parseDate(datedLayers[0]?.firstSeen ?? "");
+  const lastDate = parseDate(
+    datedLayers[datedLayers.length - 1]?.lastSeen ?? "",
+  );
   if (!firstDate || !lastDate) return null;
 
   const firstYear = firstDate.getFullYear();
@@ -237,7 +268,7 @@ export function buildErosionTimeline(
 
   for (let year = firstYear; year <= lastYear; year++) {
     const yearEnd = new Date(year, 11, 31).getTime();
-    const activeLayers = layers.filter((l) => {
+    const activeLayers = datedLayers.filter((l) => {
       const first = parseDate(l.firstSeen);
       return first && first.getTime() <= yearEnd;
     });
@@ -257,10 +288,16 @@ export function buildErosionTimeline(
     });
   }
 
+  // Use the canonical "years on X" computation so this surface and the rest
+  // of the dashboard agree on a single number. Falls back to the layer-span
+  // calculation when account creation date isn't known.
+  const canonicalYears = getYearsOnX(archive);
+  const spanYears = canonicalYears ?? lastYear - firstYear + 1;
+
   return {
     layers,
     milestones,
     totalCategories: layers.length,
-    spanYears: lastYear - firstYear + 1,
+    spanYears,
   };
 }

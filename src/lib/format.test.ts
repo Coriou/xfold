@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatDate,
+  formatDateTime,
   formatHour,
   formatNumber,
   getDayLabel,
@@ -116,5 +118,33 @@ describe("truncate", () => {
 
   it("appends ellipsis when over limit", () => {
     expect(truncate("hello world", 5)).toBe("hell\u2026");
+  });
+});
+
+describe("formatDate", () => {
+  it("formats valid dates", () => {
+    expect(formatDate("2024-03-15T10:30:00.000Z")).toMatch(/2024/);
+  });
+
+  it("returns the input string when unparseable", () => {
+    expect(formatDate("")).toBe("");
+    expect(formatDate("not a date")).toBe("not a date");
+  });
+
+  it("returns em dash for the unix epoch (sentinel for missing dates)", () => {
+    // X archives ship null timestamps as "1970-01-01T00:00:00.000Z" — these
+    // should not render as "Jan 1, 1970" in the UI.
+    expect(formatDate("1970-01-01T00:00:00.000Z")).toBe("—");
+    expect(formatDate("1969-12-31T23:59:59.000Z")).toBe("—");
+  });
+});
+
+describe("formatDateTime", () => {
+  it("formats valid datetimes", () => {
+    expect(formatDateTime("2024-03-15T10:30:00.000Z")).toMatch(/2024/);
+  });
+
+  it("returns em dash for the unix epoch", () => {
+    expect(formatDateTime("1970-01-01T00:00:00.000Z")).toBe("—");
   });
 });
