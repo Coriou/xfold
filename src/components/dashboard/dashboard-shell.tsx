@@ -1,28 +1,58 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { DEFAULT_SECTION } from "@/lib/archive/constants";
+import { useState, useCallback, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { DEFAULT_SECTION, NAV_SECTIONS } from "@/lib/archive/constants";
 import { useArchive } from "@/lib/archive/archive-store";
 import { Sidebar } from "./sidebar";
 import { ContentArea } from "./content-area";
 import { ParseWarningsBanner } from "./parse-warnings-banner";
 
+/** All known section ids, derived once from NAV_SECTIONS for URL validation. */
+const VALID_SECTION_IDS = new Set(
+  NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.id)),
+);
+
+function normalizeSection(value: string | null | undefined): string {
+  if (value && VALID_SECTION_IDS.has(value)) return value;
+  return DEFAULT_SECTION;
+}
+
 export function DashboardShell() {
-  const [activeSection, setActiveSection] = useState(DEFAULT_SECTION);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  // The URL is the source of truth for the active section. useSearchParams
+  // re-renders on URL change (including back/forward), so deriving from it
+  // gives us deep linking + history navigation for free.
+  const activeSection = useMemo(
+    () => normalizeSection(searchParams.get("section")),
+    [searchParams],
+  );
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { state } = useArchive();
 
   const username =
     state.status === "ready" ? state.archive.meta.username : null;
 
-  const handleNavigate = useCallback((id: string) => {
-    setActiveSection(id);
-    setSidebarOpen(false);
-  }, []);
+  const handleNavigate = useCallback(
+    (id: string) => {
+      setSidebarOpen(false);
+      // Mirror the active section into the URL so links and reloads work.
+      // Preserve any other params the user may have set.
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("section", id);
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
 
   return (
     <div className="flex h-full flex-1 flex-col">
       <ParseWarningsBanner />
+      {username && (
+        <h1 className="sr-only">xfold dashboard for @{username}</h1>
+      )}
       <div className="flex h-full flex-1 flex-col lg:flex-row">
         {/* Mobile top bar */}
         <div className="flex items-center gap-3 border-b border-border bg-background-overlay px-4 py-3 lg:hidden">
