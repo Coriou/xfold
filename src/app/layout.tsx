@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ArchiveProvider } from "@/lib/archive/archive-store";
 import { brand } from "@/lib/brand";
+import { FAQ } from "@/lib/faq";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -65,7 +66,7 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "xfold — See what X knows about you",
+        alt: "xfold dashboard preview — privacy score, advertiser tracking, and deleted tweets X kept",
         type: "image/png",
       },
     ],
@@ -148,6 +149,22 @@ const jsonLd = {
   privacyPolicy: SITE_URL,
 };
 
+// Mirror of the visible FAQ on the landing page so the structured data
+// matches what users actually read. Google flags FAQPage entries that
+// don't match the rendered Q&A.
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map((entry) => ({
+    "@type": "Question",
+    name: entry.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: entry.a,
+    },
+  })),
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -163,8 +180,23 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
       </head>
       <body className="flex h-full flex-col">
+        {/* Skip-to-main-content link for keyboard users. Hidden visually
+            until focused; positioned absolute when visible so it doesn't
+            disturb layout. The dashboard sidebar has 30+ buttons, so
+            without this Tab order forces keyboard users through the whole
+            navigation before reaching content. */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-accent focus:px-3 focus:py-1.5 focus:text-sm focus:text-background"
+        >
+          Skip to main content
+        </a>
         <ArchiveProvider>{children}</ArchiveProvider>
       </body>
     </html>

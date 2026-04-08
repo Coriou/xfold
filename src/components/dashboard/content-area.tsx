@@ -70,7 +70,10 @@ export function ContentArea({ sectionId, onNavigate }: ContentAreaProps) {
   const Section = SECTION_MAP[sectionId] as SectionComponent | undefined;
 
   return (
-    <main className="flex flex-1 flex-col overflow-y-auto p-4 sm:p-6">
+    <main
+      id="main"
+      className="flex flex-1 flex-col overflow-y-auto p-4 sm:p-6"
+    >
       {Section && archive ? (
         <SectionErrorBoundary sectionId={sectionId}>
           <Suspense
