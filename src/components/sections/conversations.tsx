@@ -15,6 +15,7 @@ import { DataTable } from "@/components/shared/data-table";
 import { SearchInput } from "@/components/shared/search-input";
 import { PillBadge } from "@/components/shared/pill-badge";
 import { Pagination } from "@/components/shared/pagination";
+import { EmptyState } from "@/components/shared/empty-state";
 import { formatNumber, pluralize } from "@/lib/format";
 
 type Tab = "contacts" | "channels" | "relationships";
@@ -129,7 +130,11 @@ export default function Conversations({
       <div>
         <SectionHeader
           title="Conversations"
-          description="No interaction data found in your archive."
+          description="Who you talk to most across tweets, replies, and DMs."
+        />
+        <EmptyState
+          title="No interaction data found"
+          description="Your archive doesn't contain enough tweet, mention, or DM data to reconstruct contacts. This usually means the relevant data files are missing or the account is brand new."
         />
       </div>
     );

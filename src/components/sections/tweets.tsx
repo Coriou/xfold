@@ -10,6 +10,7 @@ import { BarList } from "@/components/shared/bar-list";
 import { PillBadge } from "@/components/shared/pill-badge";
 import { Pagination } from "@/components/shared/pagination";
 import { ArchiveMedia } from "@/components/shared/archive-media";
+import { EmptyState } from "@/components/shared/empty-state";
 import { formatDate, truncate, pluralize, formatNumber, parseDate, toMonthKey } from "@/lib/format";
 import { getLanguageName } from "@/lib/language-names";
 import { StackedBarTimeline, type TimelineBucket } from "@/components/shared/stacked-bar-timeline";
@@ -106,7 +107,12 @@ export default function Tweets({ archive }: { archive: ParsedArchive }) {
               count={search ? filtered.length : undefined}
             />
           </div>
-          {view === "timeline" ? (
+          {filtered.length === 0 ? (
+            <EmptyState
+              title={`No matches for "${debouncedSearch}"`}
+              description="Try different keywords, or clear the search to see every tweet."
+            />
+          ) : view === "timeline" ? (
             <>
               <div className="space-y-3">
                 {pageData.map((t) => (

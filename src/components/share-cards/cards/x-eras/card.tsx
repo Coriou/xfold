@@ -5,10 +5,10 @@ import type { XErasCardProps } from "./compute";
 /** Cycle through era accent colors for visual variety. */
 const ERA_COLORS = [
   brand.accent,
-  "#e0a040",
+  brand.accentAmber,
   brand.danger,
-  "#7b93db",
-  "#c77dba",
+  brand.accentBlue,
+  brand.accentPurple,
 ] as const;
 
 export function XErasCard(props: XErasCardProps) {

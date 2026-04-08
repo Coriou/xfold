@@ -5,6 +5,7 @@ import type { ParsedArchive, DMConversation, DMMessage } from "@/lib/archive/typ
 import { SectionHeader } from "@/components/shared/section-header";
 import { SearchInput } from "@/components/shared/search-input";
 import { PillBadge } from "@/components/shared/pill-badge";
+import { EmptyState } from "@/components/shared/empty-state";
 import { formatDateTime, truncate, pluralize } from "@/lib/format";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
@@ -56,9 +57,10 @@ export default function DirectMessages({
       />
 
       {archive.directMessages.length === 0 ? (
-        <p className="py-8 text-center text-sm text-foreground-muted">
-          No direct messages found in your archive.
-        </p>
+        <EmptyState
+          title="No direct messages found"
+          description="Your archive doesn't contain DM data. This likely means you've never sent or received a DM, or X excluded them from this archive (DM exports have been intermittently incomplete)."
+        />
       ) : (
         <div className="flex min-h-0 flex-1 gap-4 overflow-hidden lg:min-h-[500px]">
           {/* Conversation list */}

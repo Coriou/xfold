@@ -13,6 +13,7 @@ import { TagCloud } from "@/components/shared/tag-cloud";
 import { BarList } from "@/components/shared/bar-list";
 import { DataTable } from "@/components/shared/data-table";
 import { SearchInput } from "@/components/shared/search-input";
+import { EmptyState } from "@/components/shared/empty-state";
 import { formatNumber } from "@/lib/format";
 
 type Tab = "all" | "comparison" | "ads";
@@ -105,7 +106,11 @@ export default function AdProfile({
       <div>
         <SectionHeader
           title="Your Ad Profile"
-          description="No personalization data found in your archive."
+          description="What X tells advertisers about you."
+        />
+        <EmptyState
+          title="No personalization data found"
+          description="Your archive doesn't contain personalization.js, or it lists no inferred interests. This usually means the file is missing — try requesting a fresh archive from x.com/settings/download_your_data."
         />
       </div>
     );

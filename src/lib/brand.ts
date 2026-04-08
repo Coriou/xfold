@@ -29,6 +29,16 @@ export const brand = {
   danger: "#d4533b",
   border: "#2a2b2e",
   borderHover: "#3a3b3e",
+  /**
+   * Secondary share-card-only accents. These are NOT mirrored in
+   * globals.css because they're only used inside html2canvas exports
+   * (1080×1080 PNGs), where CSS variables can't be resolved. Only add
+   * to globals.css if a dashboard component needs them too.
+   */
+  accentOrange: "#e67e22",
+  accentAmber: "#e0a040",
+  accentBlue: "#7b93db",
+  accentPurple: "#c77dba",
 } as const;
 
 /**

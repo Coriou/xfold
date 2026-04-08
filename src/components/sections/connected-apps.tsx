@@ -6,6 +6,7 @@ import { SectionHeader } from "@/components/shared/section-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { BarList } from "@/components/shared/bar-list";
 import { PillBadge } from "@/components/shared/pill-badge";
+import { EmptyState } from "@/components/shared/empty-state";
 import { formatDate, formatNumber, pluralize, parseDate } from "@/lib/format";
 import { safeHref } from "@/lib/safe-href";
 
@@ -130,9 +131,10 @@ export default function ConnectedApps({
       />
 
       {stats.totalApps === 0 ? (
-        <p className="py-8 text-center text-sm text-foreground-muted">
-          No connected applications found in your archive.
-        </p>
+        <EmptyState
+          title="No connected apps found"
+          description="Your archive doesn't list any third-party apps. This likely means you've never authorised one — or X is missing the connected_application data file."
+        />
       ) : (
         <>
           {/* Stat cards */}

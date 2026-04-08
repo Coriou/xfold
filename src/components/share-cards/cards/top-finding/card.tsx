@@ -4,7 +4,7 @@ import type { TopFindingCardProps } from "./compute";
 
 const SEVERITY_COLOR: Record<string, string> = {
   critical: brand.danger,
-  high: "#e67e22",
+  high: brand.accentOrange,
   medium: brand.foreground,
   info: brand.foregroundMuted,
 };
@@ -151,7 +151,7 @@ export function TopFindingCard(props: TopFindingCardProps) {
                   fontSize: 40,
                   fontWeight: 700,
                   fontFamily: "monospace",
-                  color: "#e67e22",
+                  color: brand.accentOrange,
                 }}
               >
                 {props.highCount}

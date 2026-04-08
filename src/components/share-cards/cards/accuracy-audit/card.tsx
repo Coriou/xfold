@@ -104,7 +104,7 @@ export function AccuracyAuditCard(props: AccuracyAuditCardProps) {
                   fontSize: 28,
                   fontWeight: 700,
                   fontFamily: "monospace",
-                  color: "#e0a040",
+                  color: brand.accentAmber,
                 }}
               >
                 {props.boughtCount}

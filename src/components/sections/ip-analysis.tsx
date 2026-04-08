@@ -24,6 +24,7 @@ import { BarList } from "@/components/shared/bar-list";
 import { DataTable } from "@/components/shared/data-table";
 import { SearchInput } from "@/components/shared/search-input";
 import { PillBadge } from "@/components/shared/pill-badge";
+import { EmptyState } from "@/components/shared/empty-state";
 
 type Tab = "networks" | "timeline" | "patterns" | "all";
 
@@ -120,7 +121,11 @@ export default function IpAnalysis({
       <div>
         <SectionHeader
           title="IP Intelligence"
-          description="No login IP data found in your archive."
+          description="Where you've signed in from."
+        />
+        <EmptyState
+          title="No login IP data found"
+          description="Your archive doesn't contain ip-audit data. This usually means the file is missing — older archives sometimes ship without it."
         />
       </div>
     );

@@ -5,6 +5,7 @@ import type { ParsedArchive } from "@/lib/archive/types";
 import { parseDate, getDayLabel, formatHour, formatNumber, toMonthKey, pluralize } from "@/lib/format";
 import { SectionHeader } from "@/components/shared/section-header";
 import { StatCard } from "@/components/shared/stat-card";
+import { EmptyState } from "@/components/shared/empty-state";
 import { ActivityHeatmap, type HeatmapCell } from "@/components/shared/activity-heatmap";
 import { StackedBarTimeline, type TimelineBucket } from "@/components/shared/stacked-bar-timeline";
 import { chartColors } from "@/lib/brand";
@@ -229,7 +230,11 @@ export default function ActivityPatterns({
       <div>
         <SectionHeader
           title="Activity Patterns"
-          description="No timestamped data found in your archive."
+          description="When and how often you use X."
+        />
+        <EmptyState
+          title="No timestamped activity found"
+          description="Your archive doesn't contain any tweets, DMs, logins, ads, or Grok messages with usable timestamps. This usually means the relevant data files are missing or empty."
         />
       </div>
     );

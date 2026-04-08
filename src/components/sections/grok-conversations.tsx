@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import type { ParsedArchive, GrokConversation, GrokMessage } from "@/lib/archive/types";
 import { SectionHeader } from "@/components/shared/section-header";
 import { PillBadge } from "@/components/shared/pill-badge";
+import { EmptyState } from "@/components/shared/empty-state";
 import { formatDateTime, truncate, pluralize } from "@/lib/format";
 
 export default function GrokConversations({
@@ -37,7 +38,11 @@ export default function GrokConversations({
       <div>
         <SectionHeader
           title="Your Grok Conversations"
-          description="No Grok conversation data found in your archive. This section appears when X has stored AI chat history."
+          description="X stores your Grok chat history in the archive."
+        />
+        <EmptyState
+          title="No Grok conversations found"
+          description="Your archive doesn't contain Grok chat data. This likely means you've never used Grok, or X didn't include it in the archive (Grok export coverage has changed multiple times)."
         />
       </div>
     );
@@ -51,7 +56,7 @@ export default function GrokConversations({
         badge={String(conversations.length)}
       />
 
-      <div className="flex flex-1 gap-4 overflow-hidden" style={{ minHeight: "500px" }}>
+      <div className="flex flex-1 gap-4 overflow-hidden lg:min-h-[500px]">
         {/* Conversation list */}
         <div className="w-72 shrink-0 overflow-y-auto rounded-xl border border-border bg-background-raised">
           {conversations.map((c) => {

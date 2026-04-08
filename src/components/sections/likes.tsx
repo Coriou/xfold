@@ -9,6 +9,7 @@ import { TagCloud } from "@/components/shared/tag-cloud";
 import { DataTable } from "@/components/shared/data-table";
 import { SearchInput } from "@/components/shared/search-input";
 import { Pagination } from "@/components/shared/pagination";
+import { EmptyState } from "@/components/shared/empty-state";
 import { truncate, pluralize } from "@/lib/format";
 import { safeHref } from "@/lib/safe-href";
 
@@ -113,6 +114,21 @@ export default function Likes({ archive }: { archive: ParsedArchive }) {
     setPage(0);
   };
 
+  if (likes.length === 0) {
+    return (
+      <div>
+        <SectionHeader
+          title="Your Likes"
+          description="The tweets you've liked, with author and engagement breakdowns."
+        />
+        <EmptyState
+          title="No likes found"
+          description="Your archive doesn't contain a like.js file or it's empty. This usually means you've never liked a tweet, or the file was excluded from the archive."
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
       <SectionHeader
@@ -197,68 +213,77 @@ export default function Likes({ archive }: { archive: ParsedArchive }) {
               count={search ? filtered.length : undefined}
             />
           </div>
-          <DataTable
-            data={pageData}
-            columns={[
-              {
-                key: "account",
-                label: "Account",
-                render: (l) => {
-                  const author = extractAuthor(l.fullText);
-                  return author ? (
-                    <span className="font-mono text-xs text-foreground-muted">
-                      @{author}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-foreground-muted">—</span>
-                  );
-                },
-                sortable: true,
-                sortValue: (l) => extractAuthor(l.fullText) ?? "",
-              },
-              {
-                key: "text",
-                label: "Tweet",
-                render: (l) => (
-                  <span className="text-sm">
-                    {l.fullText ? (
-                      truncate(l.fullText, 120)
-                    ) : (
-                      <span className="italic text-foreground-muted">
-                        No text available
+          {search && filtered.length === 0 ? (
+            <EmptyState
+              title={`No matches for "${search}"`}
+              description="Try different keywords, or clear the search to see every like."
+            />
+          ) : (
+            <>
+              <DataTable
+                data={pageData}
+                columns={[
+                  {
+                    key: "account",
+                    label: "Account",
+                    render: (l) => {
+                      const author = extractAuthor(l.fullText);
+                      return author ? (
+                        <span className="font-mono text-xs text-foreground-muted">
+                          @{author}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-foreground-muted">—</span>
+                      );
+                    },
+                    sortable: true,
+                    sortValue: (l) => extractAuthor(l.fullText) ?? "",
+                  },
+                  {
+                    key: "text",
+                    label: "Tweet",
+                    render: (l) => (
+                      <span className="text-sm">
+                        {l.fullText ? (
+                          truncate(l.fullText, 120)
+                        ) : (
+                          <span className="italic text-foreground-muted">
+                            No text available
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </span>
-                ),
-              },
-              {
-                key: "link",
-                label: "",
-                render: (l) => {
-                  const safe = safeHref(l.expandedUrl);
-                  return safe ? (
-                    <a
-                      href={safe}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-accent hover:text-accent-hover"
-                    >
-                      View
-                    </a>
-                  ) : (
-                    <span className="text-xs text-foreground-muted">—</span>
-                  );
-                },
-                align: "right" as const,
-              },
-            ]}
-            emptyMessage="No likes found."
-          />
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
+                    ),
+                  },
+                  {
+                    key: "link",
+                    label: "",
+                    render: (l) => {
+                      const safe = safeHref(l.expandedUrl);
+                      return safe ? (
+                        <a
+                          href={safe}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-accent hover:text-accent-hover"
+                        >
+                          View
+                        </a>
+                      ) : (
+                        <span className="text-xs text-foreground-muted">—</span>
+                      );
+                    },
+                    align: "right" as const,
+                  },
+                ]}
+                emptyMessage="No likes found."
+              />
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </>
+          )}
         </>
       )}
     </div>
