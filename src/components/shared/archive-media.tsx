@@ -90,12 +90,19 @@ export function ArchiveMedia({
         loop={type === "animated_gif"}
         muted={type === "animated_gif"}
         playsInline
+        preload="metadata"
       />
     );
   }
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={state.src} alt={alt} className={className} />
+    <img
+      src={state.src}
+      alt={alt || "Media from your archive"}
+      loading="lazy"
+      decoding="async"
+      className={className}
+    />
   );
 }

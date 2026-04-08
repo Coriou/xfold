@@ -42,13 +42,6 @@ let cachedMediaBytes = 0;
 const coldMediaPaths = new Set<string>();
 /** The retained ZIP buffer for lazy cold-path extraction. Cleared on cancel. */
 let retainedZip: Uint8Array | null = null;
-/**
- * True when the worker is operating on a buffer restored from IDB rather
- * than a freshly parsed archive. In this mode the hot cache and
- * `coldMediaPaths` set are empty (we never walked the central directory),
- * so `handleGetMedia` falls through to `lazyExtract` for every request.
- */
-let bufferOnlyMode = false;
 
 /** Set when the main thread sends CANCEL_PARSE. The parsing loop checks this. */
 let cancelRequested = false;
@@ -134,7 +127,6 @@ function handleParse(buffer: ArrayBuffer) {
     // Retain the original ZIP for lazy extraction of cold-cache media.
     // The previous implementation let this go out of scope after parse.
     retainedZip = zipData;
-    bufferOnlyMode = false;
 
     const uz = new Unzip((file) => {
       totalEntries++;
@@ -302,7 +294,6 @@ function handleParse(buffer: ArrayBuffer) {
       cachedMediaBytes = 0;
       coldMediaPaths.clear();
       retainedZip = null;
-      bufferOnlyMode = false;
       const out: WorkerOutMessage = { type: "PARSE_CANCELLED" };
       self.postMessage(out);
       return;
@@ -330,34 +321,49 @@ function handleParse(buffer: ArrayBuffer) {
 }
 
 // ---------------------------------------------------------------------------
-// Cold-only init from a restored ZIP buffer
+// Init from a restored ZIP buffer
 // ---------------------------------------------------------------------------
 //
 // On session restore the parsed archive is already in IDB and loaded into
 // React state on the main thread, so we don't need to re-parse data files.
 // We only need the buffer to be able to serve media via lazy extraction.
 //
-// This handler clears any existing in-memory state and stashes the buffer
-// as `retainedZip`. All future GET_MEDIA requests fall straight through
-// to `lazyExtract`, since the hot cache and `coldMediaPaths` set start
-// empty. We deliberately don't pre-walk the ZIP to populate the hot
-// cache — that would defeat the point of being lazy and cost a couple
-// of seconds for big archives.
+// This handler stores the buffer and does ONE streaming pass through the
+// ZIP to enumerate every entry name (without decompressing them — we never
+// call `file.start()`). For each media path we add the name to
+// `coldMediaPaths`. Once that's done, `handleGetMedia` can use the same
+// `resolveColdPath` lookup as a freshly parsed archive: O(1) name match
+// on the in-memory set, then a single-target lazy extract.
 //
-// `coldMediaPaths` would normally be populated during parse so
-// `resolveColdPath` knows the file exists. Since we're skipping parse,
-// we let `lazyExtract` short-circuit on its own (it streams the ZIP and
-// only decompresses the targeted entry, returning null if not found).
-// The `bufferOnlyMode` flag (declared near `retainedZip`) tells
-// `handleGetMedia` to skip the cold-path lookup entirely.
+// Without this pass, every getMedia call on a restored archive had to do
+// a full filename-only stream of the entire ZIP, which made the media
+// section feel frozen for ~30s after a refresh on real-world archives.
 // ---------------------------------------------------------------------------
 
 function handleInitFromBuffer(buffer: ArrayBuffer) {
   mediaCache.clear();
   cachedMediaBytes = 0;
   coldMediaPaths.clear();
-  retainedZip = new Uint8Array(buffer);
-  bufferOnlyMode = true;
+  const zipData = new Uint8Array(buffer);
+  retainedZip = zipData;
+
+  // Enumerate names without decompressing. The Unzip callback fires for
+  // every entry; we record the name and never call file.start(), so
+  // fflate skips decompression entirely.
+  const uz = new Unzip((file) => {
+    const name = file.name;
+    if (isMediaPath(name.toLowerCase())) {
+      coldMediaPaths.add(name);
+    }
+  });
+  uz.register(UnzipInflate);
+  uz.register(UnzipPassThrough);
+
+  const CHUNK = 65536;
+  for (let i = 0; i < zipData.length; i += CHUNK) {
+    const end = Math.min(i + CHUNK, zipData.length);
+    uz.push(zipData.subarray(i, end), end === zipData.length);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -369,24 +375,14 @@ function handleGetMedia(path: string, requestId: string) {
   let bytes: Uint8Array | undefined =
     mediaCache.get(path) ?? findMediaFuzzy(path);
 
-  // Cold fallback: if we deferred this path during parse, re-extract it
-  // from the retained ZIP. Single-shot decompression — bytes are NOT
-  // promoted into the hot cache so the budget invariant holds.
+  // Cold fallback: if we deferred this path during parse (or if we just
+  // enumerated it during INIT_FROM_BUFFER), re-extract it from the
+  // retained ZIP. Single-shot decompression — bytes are NOT promoted into
+  // the hot cache so the budget invariant holds.
   if (!bytes && retainedZip) {
-    if (bufferOnlyMode) {
-      // After INIT_FROM_BUFFER we don't have a populated coldMediaPaths
-      // set (we never walked the central directory). Try the requested
-      // path verbatim, then fall back to a filename-only stream search
-      // through the ZIP via lazyExtractByFilename.
-      bytes =
-        lazyExtract(retainedZip, path) ??
-        lazyExtractByFilename(retainedZip, path) ??
-        undefined;
-    } else {
-      const resolved = resolveColdPath(path);
-      if (resolved) {
-        bytes = lazyExtract(retainedZip, resolved) ?? undefined;
-      }
+    const resolved = resolveColdPath(path);
+    if (resolved) {
+      bytes = lazyExtract(retainedZip, resolved) ?? undefined;
     }
   }
 
@@ -465,43 +461,6 @@ function lazyExtract(
     const end = Math.min(i + CHUNK, zipBuffer.length);
     uz.push(zipBuffer.subarray(i, end), end === zipBuffer.length);
     if (slot.value !== null) break; // target fully decoded, skip the tail
-  }
-
-  return slot.value;
-}
-
-/**
- * Same idea as `lazyExtract`, but matches by filename only (without the
- * directory prefix). Used in `INIT_FROM_BUFFER` mode where we don't have
- * an authoritative path map populated during parse, so the requested
- * path may differ from the ZIP entry name in directory casing.
- */
-function lazyExtractByFilename(
-  zipBuffer: Uint8Array,
-  requestedPath: string,
-): Uint8Array | null {
-  const filename = requestedPath.split("/").pop();
-  if (!filename) return null;
-  const suffix = "/" + filename;
-  const slot: { value: Uint8Array | null } = { value: null };
-
-  const uz = new Unzip((file) => {
-    if (!file.name.endsWith(suffix) && file.name !== filename) return;
-    const chunks: Uint8Array[] = [];
-    file.ondata = (_err, chunk, final) => {
-      chunks.push(chunk);
-      if (final) slot.value = combineChunks(chunks);
-    };
-    file.start();
-  });
-  uz.register(UnzipInflate);
-  uz.register(UnzipPassThrough);
-
-  const CHUNK = 65536;
-  for (let i = 0; i < zipBuffer.length; i += CHUNK) {
-    const end = Math.min(i + CHUNK, zipBuffer.length);
-    uz.push(zipBuffer.subarray(i, end), end === zipBuffer.length);
-    if (slot.value !== null) break;
   }
 
   return slot.value;

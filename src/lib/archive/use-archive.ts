@@ -36,12 +36,32 @@ export type ArchiveState =
 // Hook
 // ---------------------------------------------------------------------------
 
+/** How long to wait for a worker MEDIA_RESULT before giving up. */
+const MEDIA_REQUEST_TIMEOUT_MS = 30_000;
+
+interface PendingMediaCallback {
+  resolve: (b: Blob | null) => void;
+  /** Browser timer id; cleared when the result arrives or the worker dies. */
+  timeoutId: ReturnType<typeof setTimeout>;
+}
+
 export function useArchiveWorker() {
   const [state, setState] = useState<ArchiveState>({ status: "idle" });
   const workerRef = useRef<Worker | null>(null);
-  const mediaCallbacks = useRef<
-    Map<string, { resolve: (b: Blob | null) => void }>
-  >(new Map());
+  const mediaCallbacks = useRef<Map<string, PendingMediaCallback>>(new Map());
+
+  /**
+   * Resolve every in-flight media callback with null and clear their timers.
+   * Used when the worker is terminated or errors out — without this the
+   * promises hang forever and ArchiveMedia stays in its loading state.
+   */
+  const failPendingMediaCallbacks = useCallback(() => {
+    for (const cb of mediaCallbacks.current.values()) {
+      clearTimeout(cb.timeoutId);
+      cb.resolve(null);
+    }
+    mediaCallbacks.current.clear();
+  }, []);
   /**
    * On session restore we load the ZIP buffer from IDB but don't spawn a
    * worker for it until the first media request comes in. We hold the
@@ -117,6 +137,7 @@ export function useArchiveWorker() {
         case "MEDIA_RESULT": {
           const cb = mediaCallbacks.current.get(msg.requestId);
           if (cb) {
+            clearTimeout(cb.timeoutId);
             mediaCallbacks.current.delete(msg.requestId);
             cb.resolve(msg.buffer ? new Blob([msg.buffer]) : null);
           }
@@ -126,6 +147,8 @@ export function useArchiveWorker() {
     };
 
     worker.onerror = (e) => {
+      // Worker died — every pending media request would otherwise hang.
+      failPendingMediaCallbacks();
       setState({
         status: "error",
         message: e.message || "Worker failed unexpectedly",
@@ -135,7 +158,7 @@ export function useArchiveWorker() {
 
     workerRef.current = worker;
     return worker;
-  }, []);
+  }, [failPendingMediaCallbacks]);
 
   const loadArchive = useCallback(
     async (file: File) => {
@@ -147,7 +170,7 @@ export function useArchiveWorker() {
       if (workerRef.current) {
         workerRef.current.terminate();
         workerRef.current = null;
-        mediaCallbacks.current.clear();
+        failPendingMediaCallbacks();
       }
       restoredBufferRef.current = null;
 
@@ -183,7 +206,7 @@ export function useArchiveWorker() {
         });
       }
     },
-    [getOrCreateWorker],
+    [getOrCreateWorker, failPendingMediaCallbacks],
   );
 
   const cancelParse = useCallback(() => {
@@ -238,7 +261,15 @@ export function useArchiveWorker() {
         }
 
         const requestId = crypto.randomUUID();
-        mediaCallbacks.current.set(requestId, { resolve });
+        // Belt-and-braces timeout. If the worker silently never replies
+        // (e.g. it died without firing onerror, or a single getMedia call
+        // wedged on a corrupt entry), the promise still resolves and the
+        // ArchiveMedia component drops out of its loading state.
+        const timeoutId = setTimeout(() => {
+          mediaCallbacks.current.delete(requestId);
+          resolve(null);
+        }, MEDIA_REQUEST_TIMEOUT_MS);
+        mediaCallbacks.current.set(requestId, { resolve, timeoutId });
 
         const msg: WorkerInMessage = {
           type: "GET_MEDIA",
@@ -254,11 +285,11 @@ export function useArchiveWorker() {
   const reset = useCallback(() => {
     workerRef.current?.terminate();
     workerRef.current = null;
-    mediaCallbacks.current.clear();
+    failPendingMediaCallbacks();
     restoredBufferRef.current = null;
     void idbClear();
     setState({ status: "idle" });
-  }, []);
+  }, [failPendingMediaCallbacks]);
 
   /**
    * Load the bundled demo archive into the dashboard. Bypasses the worker
