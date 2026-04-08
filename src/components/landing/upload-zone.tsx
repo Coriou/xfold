@@ -8,11 +8,19 @@ import {
   type DragEvent,
   type KeyboardEvent,
 } from "react";
+import { formatBytes } from "@/lib/format";
 
 interface UploadZoneProps {
   onFile: (file: File) => void;
   disabled?: boolean;
 }
+
+/**
+ * Hard upper bound on the input file size before we even attempt to read it.
+ * Anything larger is rejected up front so we don't freeze the tab. Mirrors the
+ * decompressed-byte ceiling enforced inside the worker.
+ */
+const MAX_INPUT_BYTES = 8 * 1024 * 1024 * 1024; // 8 GB
 
 const ZIP_MIME_TYPES = new Set<string>([
   "application/zip",
@@ -52,6 +60,12 @@ export function UploadZone({ onFile, disabled }: UploadZoneProps) {
       if (!looksLikeZip(file)) {
         setError(
           `“${file.name}” isn't a .zip file. Please upload the X archive ZIP from x.com/settings/download_your_data.`,
+        );
+        return;
+      }
+      if (file.size > MAX_INPUT_BYTES) {
+        setError(
+          `“${file.name}” is too large to process safely (${formatBytes(file.size)}). The maximum is 8 GB.`,
         );
         return;
       }

@@ -61,6 +61,25 @@ export function formatNumber(n: number): string {
   return n.toLocaleString("en-US");
 }
 
+/**
+ * Format a byte count as a human-readable string ("1.4 MB", "8 GB").
+ * Uses 1024-based units (binary prefixes labelled with the SI symbol for
+ * familiarity).
+ */
+export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB", "TB"] as const;
+  let value = bytes / 1024;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex++;
+  }
+  const formatted = value >= 100 ? value.toFixed(0) : value.toFixed(1);
+  return `${formatted} ${units[unitIndex]}`;
+}
+
 /** Truncate string with ellipsis */
 export function truncate(s: string, maxLen: number): string {
   if (s.length <= maxLen) return s;

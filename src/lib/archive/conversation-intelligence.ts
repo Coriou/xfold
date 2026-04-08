@@ -173,7 +173,11 @@ export function buildContactMap(archive: ParsedArchive): Contact[] {
     });
   }
 
-  return contacts.sort((a, b) => b.totalInteractions - a.totalInteractions);
+  return contacts.sort(
+    (a, b) =>
+      b.totalInteractions - a.totalInteractions ||
+      a.accountId.localeCompare(b.accountId),
+  );
 }
 
 export function computeConversationStats(

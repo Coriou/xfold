@@ -211,7 +211,8 @@ export function buildAdPriceTag(archive: ParsedArchive): AdPriceTag | null {
     if (adv.count > maxImps) {
       maxImps = adv.count;
       // Estimate what this advertiser spent using average CPM
-      const avgCpm = (estimatedRevenue / totalImpressions) * 1000;
+      const avgCpm =
+        totalImpressions > 0 ? (estimatedRevenue / totalImpressions) * 1000 : 0;
       biggestSpender = {
         name: adv.name,
         screenName: adv.screenName,

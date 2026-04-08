@@ -27,6 +27,13 @@ import type {
 /** Hot cache budget: how much decompressed media we hold in RAM at once. */
 const MAX_MEDIA_CACHE_BYTES = 256 * 1024 * 1024; // 256 MB
 
+/**
+ * Hard ceiling on total decompressed bytes a single archive may produce
+ * during parse. Anything past this is treated as a decompression bomb and
+ * the parse is aborted before the worker OOMs.
+ */
+const MAX_TOTAL_DECOMPRESSED_BYTES = 8 * 1024 * 1024 * 1024; // 8 GB
+
 // Cache of decompressed media files (path -> bytes)
 const mediaCache = new Map<string, Uint8Array>();
 /** Running total of cached media bytes (so we can stay under the budget). */
@@ -114,6 +121,12 @@ function handleParse(buffer: ArrayBuffer) {
     const dataFiles = new Map<string, Uint8Array>();
     let mediaCount = 0;
     let totalEntries = 0;
+    /**
+     * Running total of decompressed bytes seen so far across data files
+     * and (cached + cold) media. Compared against MAX_TOTAL_DECOMPRESSED_BYTES
+     * to abort decompression bombs before they OOM the worker.
+     */
+    let totalDecompressedBytes = 0;
 
     mediaCache.clear();
     cachedMediaBytes = 0;
@@ -133,6 +146,13 @@ function handleParse(buffer: ArrayBuffer) {
         const chunks: Uint8Array[] = [];
         file.ondata = (_err, chunk, final) => {
           chunks.push(chunk);
+          totalDecompressedBytes += chunk.byteLength;
+          if (totalDecompressedBytes > MAX_TOTAL_DECOMPRESSED_BYTES) {
+            throw new ArchiveError(
+              "zip-bomb",
+              "Archive decompresses to more than 8 GB. Aborting.",
+            );
+          }
           if (final) dataFiles.set(name, combineChunks(chunks));
         };
         file.start();
@@ -150,6 +170,13 @@ function handleParse(buffer: ArrayBuffer) {
         const chunks: Uint8Array[] = [];
         file.ondata = (_err, chunk, final) => {
           chunks.push(chunk);
+          totalDecompressedBytes += chunk.byteLength;
+          if (totalDecompressedBytes > MAX_TOTAL_DECOMPRESSED_BYTES) {
+            throw new ArchiveError(
+              "zip-bomb",
+              "Archive decompresses to more than 8 GB. Aborting.",
+            );
+          }
           if (final) {
             const combined = combineChunks(chunks);
             if (cachedMediaBytes + combined.byteLength <= MAX_MEDIA_CACHE_BYTES) {

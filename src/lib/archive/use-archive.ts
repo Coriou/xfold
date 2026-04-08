@@ -139,6 +139,18 @@ export function useArchiveWorker() {
 
   const loadArchive = useCallback(
     async (file: File) => {
+      // Tear down any in-flight worker before starting a new parse. Without
+      // this, a second drop while the first parse is still running races —
+      // PROGRESS messages from the old worker can clobber the new state and
+      // pending media callbacks from the previous archive can resolve with
+      // the wrong bytes.
+      if (workerRef.current) {
+        workerRef.current.terminate();
+        workerRef.current = null;
+        mediaCallbacks.current.clear();
+      }
+      restoredBufferRef.current = null;
+
       setState({
         status: "loading",
         progress: {

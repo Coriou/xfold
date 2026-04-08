@@ -103,9 +103,9 @@ export default function AdPriceTagSection({
             lists are the most expensive — and the most invasive.
           </p>
           <div className="space-y-3">
-            {priceTag.categoryBreakdown.map((cat) => (
+            {priceTag.categoryBreakdown.map((cat, index) => (
               <div
-                key={cat.category}
+                key={`${cat.category}-${index}`}
                 className="flex items-center justify-between rounded-lg border border-border bg-background-raised px-4 py-3"
               >
                 <div>

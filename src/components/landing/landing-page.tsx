@@ -55,7 +55,9 @@ export function LandingPage() {
                   ? "This doesn't look like an X archive."
                   : state.code === "corrupt"
                     ? "The archive appears to be corrupted."
-                    : "Something went wrong."}
+                    : state.code === "zip-bomb"
+                      ? "This archive is too large to process safely."
+                      : "Something went wrong."}
             </p>
             <p className="mt-1 text-xs opacity-90">{state.message}</p>
             <button

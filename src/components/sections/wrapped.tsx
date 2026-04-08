@@ -140,8 +140,8 @@ export default function Wrapped({ archive }: { archive: ParsedArchive }) {
           )}
           {stats.topHashtags.length > 1 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {stats.topHashtags.slice(1).map((h) => (
-                <PillBadge key={h.tag} variant="muted">
+              {stats.topHashtags.slice(1).map((h, index) => (
+                <PillBadge key={`${h.tag}-${index}`} variant="muted">
                   #{h.tag} · {h.count}
                 </PillBadge>
               ))}

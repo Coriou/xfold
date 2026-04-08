@@ -207,9 +207,9 @@ export default function Interests({ archive }: { archive: ParsedArchive }) {
 
           {/* Audit entries */}
           <div className="space-y-2">
-            {pagedAuditEntries.map((entry) => (
+            {pagedAuditEntries.map((entry, index) => (
               <div
-                key={entry.name}
+                key={`${entry.name}-${index}`}
                 className="flex items-start gap-4 rounded-xl border border-border bg-background-raised p-4"
               >
                 {/* Status indicator */}
@@ -273,9 +273,9 @@ export default function Interests({ archive }: { archive: ParsedArchive }) {
                   {/* Top advertisers */}
                   {entry.topAdvertisers.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {entry.topAdvertisers.map((adv) => (
+                      {entry.topAdvertisers.map((adv, advIndex) => (
                         <span
-                          key={adv}
+                          key={`${adv}-${advIndex}`}
                           className="rounded-md bg-background px-2 py-0.5 text-[11px] text-foreground-muted"
                         >
                           {adv}

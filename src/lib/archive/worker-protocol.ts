@@ -44,4 +44,5 @@ export type ParseErrorCode =
   | "not-an-archive" // ZIP didn't open / no entries
   | "not-an-x-archive" // ZIP opened but no recognizable X data
   | "corrupt" // entries failed to decompress
+  | "zip-bomb" // archive decompresses past the safe size cap
   | "internal"; // unexpected worker error

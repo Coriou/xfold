@@ -158,9 +158,9 @@ export default function PrivacyErosion({
         </div>
 
         <div className="space-y-3">
-          {timeline.layers.map((layer) => (
+          {timeline.layers.map((layer, index) => (
             <div
-              key={layer.label}
+              key={`${layer.label}-${index}`}
               className="rounded-xl border border-border bg-background-raised p-4"
             >
               <div className="flex items-start justify-between gap-2">
