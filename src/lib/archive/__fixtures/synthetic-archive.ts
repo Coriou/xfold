@@ -13,6 +13,7 @@ import type {
   AdImpression,
   AdImpressionBatch,
   ConnectedApp,
+  DeletedTweet,
   DMConversation,
   DMMessage,
   DeviceToken,
@@ -25,11 +26,13 @@ import type {
   NiDevice,
   ParsedArchive,
   Personalization,
+  PersonalizationInterest,
   ProfileInfo,
   ScreenNameChange,
   SocialEntry,
   TargetingCriterion,
   Tweet,
+  UploadedContact,
 } from "@/lib/archive/types";
 
 // --- Top-level archive ------------------------------------------------------
@@ -370,6 +373,45 @@ export function syntheticPersonalization(
     doNotReachAdvertisers: [],
     numAudiences: 0,
     locationHistory: [],
+    ...overrides,
+  };
+}
+
+export function syntheticInterest(
+  overrides: Partial<PersonalizationInterest> = {},
+): PersonalizationInterest {
+  return {
+    name: "Technology",
+    isDisabled: false,
+    ...overrides,
+  };
+}
+
+export function syntheticDeletedTweet(
+  overrides: Partial<DeletedTweet> = {},
+): DeletedTweet {
+  return {
+    id: "del-1",
+    fullText: "synthetic deleted tweet",
+    createdAt: "2022-01-01T00:00:00.000Z",
+    deletedAt: "2023-01-01T00:00:00.000Z",
+    isRetweet: false,
+    hashtags: [],
+    mentions: [],
+    ...overrides,
+  };
+}
+
+export function syntheticUploadedContact(
+  overrides: Partial<UploadedContact> = {},
+): UploadedContact {
+  return {
+    id: "contact-1",
+    emails: ["someone@example.invalid"],
+    phoneNumbers: [],
+    firstName: "Sample",
+    lastName: "Contact",
+    importedAt: "2018-01-01T00:00:00.000Z",
     ...overrides,
   };
 }

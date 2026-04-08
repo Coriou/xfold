@@ -588,11 +588,11 @@ export function buildDemoArchive(): ParsedArchive {
     deletedTweets: [
       {
         id: "del-1",
-        fullText: "old hot take I no longer stand behind",
+        fullText: "old hot take about machine learning I no longer stand behind",
         createdAt: "2019-08-12T14:00:00.000Z",
         deletedAt: "2020-01-04T22:00:00.000Z",
         isRetweet: false,
-        hashtags: [],
+        hashtags: ["machinelearning"],
         mentions: [],
       },
       {
@@ -613,15 +613,76 @@ export function buildDemoArchive(): ParsedArchive {
         hashtags: [],
         mentions: [],
       },
+      {
+        id: "del-4",
+        fullText:
+          "venting about a former employer in a thread I would not write today",
+        createdAt: "2020-10-11T22:30:00.000Z",
+        deletedAt: "2021-02-04T10:15:00.000Z",
+        isRetweet: false,
+        hashtags: [],
+        mentions: [],
+      },
+      {
+        id: "del-5",
+        fullText:
+          "wrong opinion about cycling cadence — corrected by replies, deleting before more people see",
+        createdAt: "2023-03-04T13:20:00.000Z",
+        deletedAt: "2023-03-04T13:25:00.000Z",
+        isRetweet: false,
+        hashtags: ["cycling"],
+        mentions: [],
+      },
+      {
+        id: "del-6",
+        fullText:
+          "regretting how I phrased my thoughts on AI safety, will rewrite later",
+        createdAt: "2024-07-19T09:10:00.000Z",
+        deletedAt: "2024-07-19T09:30:00.000Z",
+        isRetweet: false,
+        hashtags: [],
+        mentions: [],
+      },
+      {
+        id: "del-7",
+        fullText:
+          "draft tweet I shouldn't have posted at 2am — typo and a half-formed argument",
+        createdAt: "2025-01-08T02:14:00.000Z",
+        deletedAt: "2025-01-08T08:00:00.000Z",
+        isRetweet: false,
+        hashtags: [],
+        mentions: [],
+      },
     ],
-    contacts: Array.from({ length: 24 }, (_, i) => ({
-      id: `contact-${i}`,
-      emails: [`person${i}@example.invalid`],
-      phoneNumbers: i % 2 === 0 ? [`+155555502${String(i).padStart(2, "0")}`] : [],
-      firstName: `Person`,
-      lastName: `${i}`,
-      importedAt: "2019-05-01T00:00:00.000Z",
-    })),
+    // Mixed-format synthetic contacts so the Uploaded Contacts section
+    // exercises the email-only / phone-only / both code paths.
+    contacts: Array.from({ length: 24 }, (_, i) => {
+      const mode = i % 4;
+      // 0 = both, 1 = email only, 2 = phone only, 3 = both with multiple values
+      const emails =
+        mode === 2
+          ? []
+          : mode === 3
+            ? [`person${i}@example.invalid`, `alt${i}@example.invalid`]
+            : [`person${i}@example.invalid`];
+      const phoneNumbers =
+        mode === 1
+          ? []
+          : mode === 3
+            ? [
+                `+155555502${String(i).padStart(2, "0")}`,
+                `+155555503${String(i).padStart(2, "0")}`,
+              ]
+            : [`+155555502${String(i).padStart(2, "0")}`];
+      return {
+        id: `contact-${i}`,
+        emails,
+        phoneNumbers,
+        firstName: `Person`,
+        lastName: `${i}`,
+        importedAt: "2019-05-01T00:00:00.000Z",
+      };
+    }),
     mutes: [
       {
         accountId: "910001",
