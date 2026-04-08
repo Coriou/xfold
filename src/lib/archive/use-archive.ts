@@ -12,6 +12,7 @@ import {
   saveArchive as idbSave,
   loadArchive as idbLoad,
   clearArchive as idbClear,
+  clearZipBuffer as idbClearZip,
   saveZipBuffer as idbSaveZip,
   loadZipBuffer as idbLoadZip,
 } from "./idb-cache";
@@ -131,6 +132,14 @@ export function useArchiveWorker() {
           break;
 
         case "PARSE_CANCELLED":
+          // loadArchive saves the ZIP buffer to IDB *before* posting it to
+          // the worker (so refreshes survive). On cancel we have to undo
+          // that save — otherwise the next mount's restore-from-IDB pass
+          // re-loads the cancelled archive and the user can't escape it.
+          // We only clear the buffer, not the parsed-archive entry, so a
+          // user who was already viewing a cached archive and started a
+          // fresh-but-cancelled parse still gets their old archive back.
+          void idbClearZip();
           setState({ status: "idle" });
           break;
 

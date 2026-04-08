@@ -583,7 +583,7 @@ function findPrivacyErosion(archive: ParsedArchive): TopFinding | null {
           ? "high"
           : "medium",
     shockScore: Math.min(85, 30 + Math.log10(totalDataPoints) * 12),
-    sectionId: "overview",
+    sectionId: "privacy-score",
     category: "Overall",
     action: {
       label: "Download your data",

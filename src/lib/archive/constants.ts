@@ -35,7 +35,7 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "privacy",
     label: "Privacy Audit",
     items: [
-      { id: "overview", label: "Privacy Score" },
+      { id: "privacy-score", label: "Privacy Score" },
       { id: "shadow-profile", label: "Shadow Profile" },
       { id: "activity-patterns", label: "Activity Patterns" },
       {

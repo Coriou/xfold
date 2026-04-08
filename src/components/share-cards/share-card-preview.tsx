@@ -13,9 +13,17 @@ interface ShareCardPreviewProps {
  * Renders one card scaled-to-fit with a download-as-PNG button.
  *
  * CRITICAL: `cardRef` MUST point at the inner unscaled card element (rendered
- * at 1080×1080), NOT at the scaled wrapper. html2canvas captures the underlying
- * box regardless of CSS transform on a parent. The wrapper applies scale only
- * for visual preview.
+ * at 1080×1080), NOT at the scaled wrapper. html-to-image captures the
+ * underlying box regardless of CSS transform on a parent. The wrapper applies
+ * scale only for visual preview.
+ *
+ * We use `html-to-image` rather than `html2canvas` because the design tokens
+ * in `globals.css` are declared with `oklch()`. Browsers compute those to
+ * `lab()` at use sites, and html2canvas's CSS color parser doesn't understand
+ * either function — every download blew up with `Attempting to parse an
+ * unsupported color function "lab"`. html-to-image serializes the live element
+ * to SVG/foreignObject, so the browser does the color resolution and html-to-
+ * image only deals with already-rasterized output.
  */
 export function ShareCardPreview({ card, username }: ShareCardPreviewProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -43,15 +51,16 @@ export function ShareCardPreview({ card, username }: ShareCardPreviewProps) {
     setDownloading(true);
     setDownloadError(null);
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 2,
-        backgroundColor: null,
-        useCORS: false,
-        allowTaint: false,
-      });
-      const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((b) => resolve(b), "image/png");
+      const { toBlob } = await import("html-to-image");
+      // pixelRatio: 2 mirrors the previous html2canvas `scale: 2` — produces
+      // a 2160×2160 PNG from the 1080×1080 source so the result still looks
+      // sharp on retina screens when shared. skipFonts avoids a network round
+      // trip to embed fonts we already have locally; the card uses system
+      // sans-serif anyway, so embedding adds bytes for no visual change.
+      const blob = await toBlob(cardRef.current, {
+        pixelRatio: 2,
+        cacheBust: true,
+        skipFonts: true,
       });
       if (!blob) {
         throw new Error("Canvas produced no PNG bytes");

@@ -236,6 +236,30 @@ export async function clearArchive(): Promise<void> {
 }
 
 /**
+ * Delete just the persisted ZIP buffer, leaving the parsed-archive entry
+ * alone. Used when a fresh parse is cancelled mid-flight: `loadArchive`
+ * persists the buffer to IDB *before* transferring it to the worker, so on
+ * cancel we have to undo that save — otherwise the next mount's restore-
+ * from-IDB pass picks the cancelled bytes back up. We deliberately don't
+ * touch `latest`, since the user may still have a previously-cached parsed
+ * archive they expect to fall back to.
+ */
+export async function clearZipBuffer(): Promise<void> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(ZIP_BUFFER_KEY);
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch {
+    // IDB is a bonus — silently fail
+  }
+}
+
+/**
  * Persist the original ZIP buffer so the worker can be lazily re-spawned
  * after a session restore. Stored separately from the parsed-archive entry
  * because the buffer can be many GB on large accounts and shouldn't bloat

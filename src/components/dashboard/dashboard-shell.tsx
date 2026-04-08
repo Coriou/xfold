@@ -42,7 +42,12 @@ export function DashboardShell() {
       // Preserve any other params the user may have set.
       const params = new URLSearchParams(searchParams.toString());
       params.set("section", id);
-      router.replace(`?${params.toString()}`, { scroll: false });
+      // push (not replace): each sidebar click should add a history entry so
+      // the browser back/forward buttons walk through the user's nav history.
+      // No-op if the user clicks the section they're already on.
+      const next = `?${params.toString()}`;
+      if (next === `?${searchParams.toString()}`) return;
+      router.push(next, { scroll: false });
     },
     [router, searchParams],
   );

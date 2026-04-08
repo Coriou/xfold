@@ -17,7 +17,7 @@ const SECTION_MAP: Record<
 > = {
   "ad-price-tag": lazy(() => import("@/components/sections/ad-price-tag")),
   wrapped: lazy(() => import("@/components/sections/wrapped")),
-  overview: lazy(() => import("@/components/sections/overview")),
+  "privacy-score": lazy(() => import("@/components/sections/overview")),
   "activity-patterns": lazy(
     () => import("@/components/sections/activity-patterns"),
   ),
