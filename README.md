@@ -1,10 +1,25 @@
 # xfold
 
+![xfold — See what X knows about you](docs/og.png)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Coriou/xfold?style=social)](https://github.com/Coriou/xfold)
+[![Vercel](https://vercelbadge.vercel.app/api/Coriou/xfold)](https://xfold.app)
+
 **See what X knows about you.**
 
 [xfold.app](https://xfold.app) is a privacy audit tool for your X (Twitter) data archive. Drop in the ZIP, see everything they collected — interests, ad targeting, login history, deleted tweets, Grok conversations, the lot — visualised in a dashboard X never wanted you to see.
 
 The whole thing runs in your browser. No upload, no server, no account, no analytics. Open the network tab while you use it.
+
+## How to get your archive
+
+1. Go to [x.com/settings/download_your_data](https://x.com/settings/download_your_data)
+2. Verify your password
+3. Wait 24-48 hours for X to email you a download link
+4. Download the ZIP, drop it into xfold
+
+The archive can be 10 MB or several GB. xfold parses it incrementally in a Web Worker so the UI stays responsive, with an 8 GB hard ceiling on the input size.
 
 ## Try it without an archive
 
@@ -27,18 +42,9 @@ The whole thing runs in your browser. No upload, no server, no account, no analy
 
 Plus 15+ more sections covering social graph, DMs, demographics, ghost data categories X hides from its own viewer, and a gallery of share-worthy export cards.
 
-## How to get your archive
-
-1. Go to [x.com/settings/download_your_data](https://x.com/settings/download_your_data)
-2. Verify your password
-3. Wait 24-48 hours for X to email you a download link
-4. Download the ZIP, drop it into xfold
-
-The archive can be 10 MB or 10 GB. xfold parses it incrementally in a Web Worker so the UI stays responsive.
-
 ## Privacy
 
-This is a privacy tool that practices what it preaches:
+xfold is a privacy tool that practices what it preaches:
 
 - **Static site** — no API routes, no backend, no edge functions
 - **Strict CSP** — `connect-src 'self'` blocks all outbound network calls at the browser level
@@ -47,7 +53,7 @@ This is a privacy tool that practices what it preaches:
 - **No third-party requests** — fonts and assets are self-hosted at build time
 - **Open source** — every line is in this repo, audit it yourself
 
-The archive is parsed in-memory in a Web Worker. Optionally, your last-loaded archive is cached in IndexedDB on your own device so reloads are instant — that storage stays on your machine and never goes anywhere.
+Your last-loaded archive is optionally cached in IndexedDB on your own device so reloads are instant. That storage stays on your machine and never goes anywhere.
 
 ## Tech stack
 
@@ -95,13 +101,8 @@ Useful scripts:
 
 ## Contributing
 
-Issues and pull requests welcome. Two ground rules:
-
-1. **Never commit real archive data**, even sanitized. Tests use the synthetic fixtures in `__fixtures/`.
-2. **Stay client-side**. No API routes, no server-side data processing, no third-party scripts. The privacy promise is the product.
-
-The TypeScript posture is strict (see `CLAUDE.md` and `tsconfig.json`) — `any` is banned, optional properties use `exactOptionalPropertyTypes`, and discriminated unions are preferred over class hierarchies. The insights engine targets 100% statement coverage.
+Issues and pull requests welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules — the short version is: never commit real archive data, stay client-side, and keep the strict TypeScript posture.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
