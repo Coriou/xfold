@@ -17,17 +17,18 @@ import type { NextConfig } from "next";
 // Notes (production policy):
 // - 'unsafe-inline' on style-src is required by Tailwind 4 / Next.js
 //   inline style injection. There's currently no clean way around this.
-// - 'wasm-unsafe-eval' is reserved for fflate's optional WASM path.
 // - blob: in img-src and media-src is required for archive media (we
 //   create blob URLs from decompressed bytes in the worker).
 // - worker-src 'self' blob: covers the parsing worker.
 // - connect-src 'self' is the keystone: blocks ALL outbound network calls.
+// - script-src 'self' only — fflate ships JS-only, no WASM path is loaded.
+// - font-src 'self' only — next/font/google self-hosts at build time.
 // ----------------------------------------------------------------------------
 const isDev = process.env.NODE_ENV !== "production";
 
 const scriptSrc = isDev
   ? "'self' 'unsafe-inline' 'unsafe-eval'"
-  : "'self' 'wasm-unsafe-eval'";
+  : "'self'";
 
 const connectSrc = isDev
   ? // Dev needs websocket + http for HMR / Turbopack
@@ -40,10 +41,12 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
   "media-src 'self' blob:",
-  "font-src 'self' data:",
+  "font-src 'self'",
   `connect-src ${connectSrc}`,
   "worker-src 'self' blob:",
+  "frame-src 'none'",
   "frame-ancestors 'none'",
+  "manifest-src 'self'",
   "base-uri 'self'",
   "form-action 'none'",
   "object-src 'none'",
@@ -72,7 +75,7 @@ const nextConfig: NextConfig = {
           {
             key: "Permissions-Policy",
             value:
-              "camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()",
+              "camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=(), clipboard-read=(), display-capture=()",
           },
         ],
       },
