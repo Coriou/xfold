@@ -27,6 +27,13 @@ export function CardFrame({ children }: { children: ReactNode }) {
       style={{
         width: SHARE_CARD_SIZE,
         height: SHARE_CARD_SIZE,
+        // border-box keeps the outer box exactly SHARE_CARD_SIZE × SHARE_CARD_SIZE
+        // even with the 80px inner padding, so the absolutely-positioned
+        // CardFooter (`bottom: 80`) lands at y = 1080 − 80 = 1000 inside the
+        // foreignObject viewport. Without this, padding adds to the box and
+        // pushes the footer below the 1080px canvas, where it's clipped off
+        // the bottom of the export.
+        boxSizing: "border-box",
         backgroundColor: brand.background,
         color: brand.foreground,
         fontFamily: FONT,
@@ -67,14 +74,26 @@ export function CardHeader({ title }: { title?: string | undefined }) {
 }
 
 export function CardFooter({ username }: { username: string }) {
+  // The footer is absolutely positioned (rather than `margin-top: auto`) so
+  // that it survives the SVG `<foreignObject>` rasterization path used to
+  // export the card to PNG. Foreign-object renders flex containers without
+  // honoring an explicit pixel `height` on the root, which collapses the
+  // CardFrame to its content height — `margin-top: auto` then has no extra
+  // space to push into and the footer disappears from the export. Anchoring
+  // to `bottom` lets the same DOM render correctly both on screen (where
+  // CardFrame's `position: relative` is the containing block) and inside the
+  // foreignObject's HTML viewport. The 80px insets mirror CardFrame's outer
+  // padding so the layout looks identical to the previous flex version.
   return (
     <div
       style={{
-        marginTop: "auto",
+        position: "absolute",
+        left: 80,
+        right: 80,
+        bottom: 80,
         display: "flex",
         justifyContent: "space-between",
         alignItems: "flex-end",
-        paddingTop: 24,
       }}
     >
       {username && (
